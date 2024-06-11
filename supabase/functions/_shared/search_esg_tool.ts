@@ -1,11 +1,11 @@
 /// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
 
-import { Pinecone } from "npm:/@pinecone-database/pinecone@2.2.2";
-import { OpenAIEmbeddings } from "npm:/@langchain/openai@0.1.1";
-import { DynamicStructuredTool } from "npm:/@langchain/core@0.2.5/tools";
+import { Pinecone } from "npm:/@pinecone-database/pinecone";
+import { OpenAIEmbeddings } from "npm:/@langchain/openai";
+import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
 import { OpenSearchClient } from "npm:@aws-sdk/client-opensearch";
-import { createClient } from "npm:@supabase/supabase-js@2.43.4";
-import { z } from "npm:/zod@3.23.8";
+import { createClient } from "npm:@supabase/supabase-js";
+import { z } from "npm:/zod";
 
 const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
