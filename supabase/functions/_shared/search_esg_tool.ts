@@ -1,9 +1,9 @@
 /// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
 
-import { Pinecone } from "npm:/@pinecone-database/pinecone";
-import { OpenAIEmbeddings } from "npm:/@langchain/openai";
 import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
+import { OpenAIEmbeddings } from "npm:/@langchain/openai";
 import { OpenSearchClient } from "npm:/@aws-sdk/client-opensearch";
+import { Pinecone } from "npm:/@pinecone-database/pinecone";
 import postgres from "npm:/postgres";
 import { z } from "npm:/zod";
 

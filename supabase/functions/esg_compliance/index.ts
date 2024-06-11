@@ -5,17 +5,19 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 /// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
 
-import { ChatOpenAI } from "npm:/@langchain/openai";
-import { END, MessageGraph, START } from "npm:/@langchain/langgraph@0.0.22";
-import { ToolNode } from "npm:/@langchain/langgraph@0.0.22/prebuilt";
-// import { DuckDuckGoSearch } from "npm:/@langchain/community@0.2.9/tools/duckduckgo_search";
+import "npm:/duck-duck-scrape";
+
+// import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
 import {
   AIMessage,
   BaseMessage,
   HumanMessage,
-} from "npm:/@langchain/core@0.2.5/messages";
-import "npm:/duck-duck-scrape@2.2.5";
+} from "npm:/@langchain/core/messages";
+import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
+
+import { ChatOpenAI } from "npm:/@langchain/openai";
 import SearchEsgTool from "../_shared/search_esg_tool.ts";
+import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
 
 Deno.serve(async (req) => {
   const { query } = await req.json();
