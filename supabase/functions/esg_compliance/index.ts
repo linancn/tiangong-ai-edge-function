@@ -8,13 +8,14 @@
 import { ChatOpenAI } from "npm:/@langchain/openai";
 import { END, MessageGraph, START } from "npm:/@langchain/langgraph@0.0.22";
 import { ToolNode } from "npm:/@langchain/langgraph@0.0.22/prebuilt";
-import { DuckDuckGoSearch } from "npm:/@langchain/community@0.2.9/tools/duckduckgo_search";
+// import { DuckDuckGoSearch } from "npm:/@langchain/community@0.2.9/tools/duckduckgo_search";
 import {
   AIMessage,
   BaseMessage,
   HumanMessage,
 } from "npm:/@langchain/core@0.2.5/messages";
 import "npm:/duck-duck-scrape@2.2.5";
+import SearchEsgTool from "../_shared/search_esg_tool.ts";
 
 Deno.serve(async (req) => {
   const { query } = await req.json();
@@ -22,7 +23,8 @@ Deno.serve(async (req) => {
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
   const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
 
-  const tools = [new DuckDuckGoSearch({ maxResults: 1 })];
+  // const tools = [new DuckDuckGoSearch({ maxResults: 1 }), new SearchEsgTool()];
+  const tools = [new SearchEsgTool()];
   const toolNode = new ToolNode<BaseMessage[]>(tools);
 
   const model = new ChatOpenAI({
@@ -70,6 +72,6 @@ Deno.serve(async (req) => {
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"query":"Claude3什么时候发布的？"}'
+    --data '{"query":"阿里有哪些减排措施？"}'
 
 */

@@ -1,6 +1,6 @@
-import SearchApi from "npm:duckduckgo-search@1.0.5";
-import {  DynamicStructuredTool } from "https://esm.sh/@langchain/core@0.2.5/tools";
-import { z } from "https://esm.sh/zod@3.23.8";
+import SearchApi from "npm:/duckduckgo-search@1.0.5";
+import {  DynamicStructuredTool } from "npm:/@langchain/core@0.2.5/tools";
+import { z } from "npm:/zod@3.23.8";
 
 class SearchInternetTool {
 
