@@ -22,7 +22,7 @@ const openaiClient = new OpenAIEmbeddings({
   model: openai_embedding_model,
 });
 
-const openSearchClient = new OpenSearchClient({ region: "REGION" });
+// const openSearchClient = new OpenSearchClient({ region: "REGION" });
 
 const search = async (query: string, topK: number, filter: object) => {
   console.log(query, topK, filter);
