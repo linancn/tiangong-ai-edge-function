@@ -3,8 +3,8 @@
 import { Pinecone } from "npm:/@pinecone-database/pinecone";
 import { OpenAIEmbeddings } from "npm:/@langchain/openai";
 import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
-import { OpenSearchClient } from "npm:@aws-sdk/client-opensearch";
-import { createClient } from "npm:@supabase/supabase-js";
+import { OpenSearchClient } from "npm:/@aws-sdk/client-opensearch";
+import postgres from "npm:/postgres";
 import { z } from "npm:/zod";
 
 const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
@@ -21,9 +21,6 @@ const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
   model: openai_embedding_model,
 });
-
-const supabase = createClient('https://xyzcompany.supabase.co', 'public-anon-key')
-
 
 const openSearchClient = new OpenSearchClient({ region: "REGION" });
 
