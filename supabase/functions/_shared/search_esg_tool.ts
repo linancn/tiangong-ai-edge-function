@@ -2,7 +2,7 @@
 
 import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
 import { OpenAIEmbeddings } from "npm:/@langchain/openai";
-import { OpenSearchClient } from "npm:/@aws-sdk/client-opensearch";
+import { OpenSearchClient } from "npm:/@aws-sdk/client-opensearchserverless";
 import { Pinecone } from "npm:/@pinecone-database/pinecone";
 import postgres from "npm:/postgres";
 import { z } from "npm:/zod";
@@ -14,6 +14,10 @@ const pinecone_namespace_esg = Deno.env.get("PINECONE_NAMESPACE_ESG") ?? "";
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
 
+const opensearch_region = Deno.env.get("OPENSEARCH_REGION") ?? "";
+
+const postgres_uri = Deno.env.get("POSTGRES_URI") ?? "";
+
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
@@ -22,7 +26,19 @@ const openaiClient = new OpenAIEmbeddings({
   model: openai_embedding_model,
 });
 
-// const openSearchClient = new OpenSearchClient({ region: "REGION" });
+const openSearchClient = new OpenSearchClient({ region: opensearch_region });
+
+const sql = postgres(postgres_uri);
+
+async function getEsgMeta(id: string[]) {
+  const records = await sql`
+    SELECT
+      id, company_short_name, report_title, publication_date
+    FROM esg_meta
+    WHERE id IN ${sql(id)}
+  `;
+  return records;
+}
 
 const search = async (query: string, topK: number, filter: object) => {
   console.log(query, topK, filter);
@@ -41,17 +57,16 @@ const search = async (query: string, topK: number, filter: object) => {
 
   const docList = [];
   for (const doc of queryResponse.matches) {
-    // const metadata = (doc as { metadata: object }).metadata;
-    docList.push({ content: doc?.metadata?.text });
+    const metadata = (doc as { metadata: object }).metadata;
+    
+    const id_set = new Set();
+    for (const doc of queryResponse.matches) {
+      id_set.add(doc?.metadata?.rec_id);
+    }
+    
+    const pgResponse = await getEsgMeta(Array.from(id_set));
 
-    // const id_set = new Set();
-    // for (const doc of queryResponse.matches) {
-    //   id_set.add(doc?.metadata?.rec_id);
-    // }
-    // const pgResponse = await postgres.query(
-    //   "SELECT id, company_short_name, report_title, publication_date FROM ESG WHERE id = ANY($1)",
-    //   [Array.from(id_set)],
-    // );
+    docList.push({ content: doc?.metadata?.text });
 
     // const recordsDict: { [id: string]: RecordType } = {};
 
@@ -95,7 +110,7 @@ class SearchEsgTool extends DynamicStructuredTool {
         docIds: z.array(z.string()).default([]).describe(
           "document ids to filter the search.",
         ),
-        topK: z.number().default(3).describe("Number of results to return."),
+        topK: z.number().default(5).describe("Number of results to return."),
       }),
       func: async ({ query, docIds, topK }) => {
         if (!query) {
