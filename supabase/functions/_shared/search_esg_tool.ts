@@ -1,13 +1,13 @@
 /// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
 
-import AWS from "npm:/aws-sdk";
 import { AwsSigv4Signer } from "npm:/@opensearch-project/opensearch/aws";
 import { Client } from "npm:/@opensearch-project/opensearch";
-import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
-import { OpenAIEmbeddings } from "npm:/@langchain/openai";
-import { Pinecone } from "npm:/@pinecone-database/pinecone";
+import { DynamicStructuredTool } from "https://esm.sh/@langchain/core/tools";
+import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
+import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
+import { defaultProvider } from "npm:/@aws-sdk/credential-provider-node";
 import postgres from "npm:/postgres";
-import { z } from "npm:/zod";
+import { z } from "https://esm.sh/zod";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
@@ -35,16 +35,11 @@ const opensearchClient = new Client({
     region: opensearch_region,
     service: "aoss",
 
-    getCredentials: () =>
-      new Promise((resolve, reject) => {
-        AWS.config.getCredentials((err, credentials) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(credentials);
-          }
-        });
-      }),
+    getCredentials: () => {
+      // Any other method to acquire a new Credentials object can be used.
+      const credentialsProvider = defaultProvider();
+      return credentialsProvider();
+    },
   }),
   node: opensearch_domain,
 });

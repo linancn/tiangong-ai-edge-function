@@ -5,7 +5,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 /// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
 
-import "npm:/duck-duck-scrape";
+// import "npm:/duck-duck-scrape";
 
 // import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
 import {
@@ -13,18 +13,18 @@ import {
   BaseMessage,
   FunctionMessage,
   HumanMessage,
-} from "npm:/@langchain/core/messages";
+} from "https://esm.sh/@langchain/core/messages";
 import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 
-import { ChatOpenAI } from "npm:/@langchain/openai";
-import { ChatPromptTemplate } from "npm:/@langchain/core/prompts";
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import SearchEsgTool from "../_shared/search_esg_tool.ts";
-import { StringOutputParser } from "npm:/@langchain/core/output_parsers";
-import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
-import { convertToOpenAIFunction } from "npm:/@langchain/core/utils/function_calling";
-import { pull } from "npm:/langchain/hub";
-import { z } from "npm:/zod";
-import { zodToJsonSchema } from "npm:/zod-to-json-schema";
+import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
+import { ToolExecutor } from "https://esm.sh/@langchain/langgraph/prebuilt";
+import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
+import { pull } from "https://esm.sh/langchain/hub";
+import { z } from "https://esm.sh/zod";
+import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema";
 
 // import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
 // import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
