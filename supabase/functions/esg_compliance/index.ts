@@ -20,7 +20,7 @@ import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
 import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import SearchEsgTool from "../_shared/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
-import { ToolExecutor } from "https://esm.sh/@langchain/langgraph/prebuilt";
+import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
 import { pull } from "https://esm.sh/langchain/hub";
 import { z } from "https://esm.sh/zod";
@@ -260,5 +260,6 @@ Deno.serve(async (req) => {
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？"}'
+    
 
 */

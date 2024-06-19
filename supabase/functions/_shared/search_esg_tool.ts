@@ -60,44 +60,38 @@ const search = async (query: string, topK: number, filter: object) => {
   // console.log(query, topK, filter);
 
   const searchVector = await openaiClient.embedQuery(query);
-  const queryResponse = await index.namespace(pinecone_namespace_esg).query({
-    vector: searchVector,
-    filter: filter,
-    topK: topK,
-    includeMetadata: true,
-  });
 
-  if (!queryResponse) {
-    console.error("doc id does not exist");
-  }
-
-  // console.log(queryResponse);
-
-  const fulltextQuery = {
-    query: {
-      match: {
-        text: query,
+  const [pineconeResponse, fulltextResponse] = await Promise.all([
+    index.namespace(pinecone_namespace_esg).query({
+      vector: searchVector,
+      filter: filter,
+      topK: topK,
+      includeMetadata: true,
+    }),
+    opensearchClient.search({
+      index: opensearch_index_name,
+      body: {
+        query: {
+          match: {
+            text: query,
+          },
+        },
+        size: topK,
       },
-    },
-    size: topK,
-  };
+    }),
+  ]);
 
-  const fulltextResponse = await opensearchClient.search({
-    index: opensearch_index_name,
-    body: fulltextQuery,
-  });
-
-  // console.log(fulltextResponse);
+  if (!pineconeResponse) {
+    console.error("Pinecone query response is empty.");
+  }
 
   const rec_id_set = new Set();
   const unique_docs = [];
 
-  for (const doc of queryResponse.matches) {
+  for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    if (rec_id_set.has(id)) {
-      continue;
-    } else {
+    if (!rec_id_set.has(id)) {
       rec_id_set.add(id);
       if (doc.metadata) {
         unique_docs.push({
@@ -112,9 +106,7 @@ const search = async (query: string, topK: number, filter: object) => {
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
 
-    if (rec_id_set.has(id)) {
-      continue;
-    } else {
+    if (!rec_id_set.has(id)) {
       rec_id_set.add(id);
       unique_docs.push({
         id: doc._source.reportId,
@@ -124,21 +116,14 @@ const search = async (query: string, topK: number, filter: object) => {
     }
   }
 
-  // console.log(unique_docs);
-
   const unique_doc_id_set = new Set<string>();
   for (const doc of unique_docs) {
     unique_doc_id_set.add(doc.id);
   }
 
-  // console.log(unique_doc_id_set);
-
   const pgResponse = await getEsgMeta(Array.from(unique_doc_id_set));
 
-  // console.log(pgResponse);
-
-  const docList = [];
-  for (const doc of unique_docs) {
+  const docList = unique_docs.map((doc) => {
     const record = pgResponse.find((r) => r.id === doc.id);
 
     if (record) {
@@ -149,13 +134,12 @@ const search = async (query: string, topK: number, filter: object) => {
       const pageNumber = doc.page_number;
       const sourceEntry =
         `${companyShortName}. ${reportTitle}. ${formattedDate}. (P${pageNumber})`;
-      docList.push({ content: doc.text, source: sourceEntry });
+      return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");
     }
-  }
+  });
 
-  // console.log(docList);
   return docList;
 };
 
