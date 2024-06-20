@@ -61,6 +61,7 @@ npx supabase login
 npx supabase functions new esg_compliance
 
 npx supabase functions deploy esg_compliance --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy edu_search --project-ref qyyqlnwqwgvzxnccnbgm
 
 npx supabase secrets set --env-file ./supabase/.env.local --project-ref qyyqlnwqwgvzxnccnbgm
 ```
