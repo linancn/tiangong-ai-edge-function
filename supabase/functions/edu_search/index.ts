@@ -9,9 +9,12 @@ import { AwsSigv4Signer } from "npm:/@opensearch-project/opensearch/aws";
 import { Client } from "npm:/@opensearch-project/opensearch";
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
 import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
+import { corsHeaders } from "../_shared/cors.ts";
 import { defaultProvider } from "npm:/@aws-sdk/credential-provider-node";
 import generateQuery from "../_shared/generate_query.ts";
 import postgres from "npm:/postgres";
+
+const x_password = Deno.env.get("X_PASSWORD") ?? "";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
@@ -70,7 +73,7 @@ const search = async (
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
-  console.log(filter);
+  // console.log(filter);
 
   const body = {
     query: filter
@@ -152,7 +155,7 @@ const search = async (
     unique_doc_id_set.add(doc.id);
   }
 
-  console.log(unique_doc_id_set);
+  // console.log(unique_doc_id_set);
 
   const pgResponse = await getEsgMeta(Array.from(unique_doc_id_set));
 
@@ -176,7 +179,16 @@ const search = async (
 };
 
 Deno.serve(async (req) => {
-  const { query, filter } = await req.json();
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  // Get the session or user object
+  const password = req.headers.get("x-password");
+  if (password !== x_password) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { query, filter, topK } = await req.json();
   // console.log(query, filter);
 
   const res = await generateQuery(query);
@@ -184,7 +196,7 @@ Deno.serve(async (req) => {
   const result = await search(
     res.semantic_query,
     res.fulltext_query_chi_sim,
-    5,
+    topK,
     filter,
   );
   // console.log(result);
@@ -203,6 +215,11 @@ Deno.serve(async (req) => {
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}}'
-
+    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}, "topK": 3}'
+  
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
+    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+    --header 'Content-Type: application/json' \
+    --header 'x-password: adsfj_hu_!8v823ksklk' \
+    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}, "topK": 3}'
 */
