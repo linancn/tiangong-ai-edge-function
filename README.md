@@ -53,6 +53,16 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compl
     --data '{"name":"Functions"}'
 ```
 
+## Docker Deployment AWS Lambda
+
+```bash
+docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6 .
+
+docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6
+
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6
+```
+
 ## Remote Config
 
 ```bash

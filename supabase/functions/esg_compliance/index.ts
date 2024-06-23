@@ -260,4 +260,9 @@ Deno.serve(async (req) => {
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？"}'
+
+  curl -i --location --request POST 'http://127.0.0.1:9000/' \
+    --header 'Content-Type: application/json' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？"}'
+  
 */
