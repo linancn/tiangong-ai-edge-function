@@ -30,6 +30,14 @@ import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema";
 // import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
 
 Deno.serve(async (req) => {
+
+  if (req.url.endsWith("health")) {
+    return new Response(JSON.stringify({ status: "healthy" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  
   const { query } = await req.json();
 
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -42,7 +50,6 @@ Deno.serve(async (req) => {
     tools,
   });
   // const toolNode = new ToolNode<BaseMessage[]>(tools);
-
 
   async function retrieve(state: Array<BaseMessage>) {
     console.log("---EXECUTE RETRIEVAL---");
@@ -102,11 +109,11 @@ Deno.serve(async (req) => {
       tools: [tool],
       tool_choice: tool,
     });
-  
+
     const chain = prompt.pipe(model);
-  
+
     const lastMessage = state[state.length - 1];
-  
+
     const score = await chain.invoke({
       question: state[0].content as string,
       context: lastMessage.content as string,
@@ -123,7 +130,7 @@ Deno.serve(async (req) => {
       throw new Error("Last message was not a function message");
     }
     const parsedArgs = JSON.parse(toolCalls[0].function.arguments);
-  
+
     if (parsedArgs.binaryScore === "yes") {
       console.log("---DECISION: DOCS RELEVANT---");
       return "yes";
@@ -143,13 +150,12 @@ Deno.serve(async (req) => {
     }).bind({
       functions,
     });
-  
+
     const response = await model.invoke(state);
     console.log("---INVOKE TOOL---");
     // We can return just the response because it will be appended to the state.
     return [response];
   }
-
 
   async function rewrite(state: Array<BaseMessage>) {
     console.log("---REWRITE QUERY---");
@@ -162,7 +168,7 @@ Deno.serve(async (req) => {
     \n ------- \n
     Formulate an improved question:`,
     );
-  
+
     // Grader
     const model = new ChatOpenAI({
       apiKey: openai_api_key,
@@ -179,20 +185,20 @@ Deno.serve(async (req) => {
     console.log("---GENERATE---");
     const question = state[0].content as string;
     const sendLastMessage = state[state.length - 2];
-  
+
     const docs = sendLastMessage.content as string;
-  
+
     const prompt = await pull<ChatPromptTemplate>("rlm/rag-prompt");
-  
+
     const llm = new ChatOpenAI({
       apiKey: openai_api_key,
       modelName: openai_chat_model,
       temperature: 0,
       streaming: true,
     });
-  
+
     const ragChain = prompt.pipe(llm).pipe(new StringOutputParser());
-  
+
     const response = await ragChain.invoke({
       context: docs,
       question,
@@ -200,7 +206,6 @@ Deno.serve(async (req) => {
     console.log("---GENERATE COMPLETED---");
     return [new AIMessage(response)];
   }
-
 
   // const model = new ChatOpenAI({
   //   apiKey: openai_api_key,
@@ -214,21 +219,16 @@ Deno.serve(async (req) => {
     .addNode("rewrite", rewrite)
     .addNode("generate", generate);
 
-
-  graph.addEdge(START,"agent");
+  graph.addEdge(START, "agent");
   graph.addEdge("agent", "retrieve");
   graph.addEdge("retrieve", "gradeDocuments");
-  graph.addConditionalEdges("gradeDocuments", checkRelevance,
-    {
-      // Call tool node
-      yes: "generate",
-      no: "rewrite", // placeholder
-    },
-  );
+  graph.addConditionalEdges("gradeDocuments", checkRelevance, {
+    // Call tool node
+    yes: "generate",
+    no: "rewrite", // placeholder
+  });
   graph.addEdge("rewrite", "agent");
   graph.addEdge("generate", END);
-
-
 
   const runnable = graph.compile();
   console.log("---GRAPH COMPILED---");
@@ -239,9 +239,9 @@ Deno.serve(async (req) => {
     for (const [key, value] of Object.entries(output)) {
       console.log(`Output from node: '${key}'`);
       finalState = value;
+    }
+    console.log("\n---\n");
   }
-  console.log("\n---\n");
-}
 
   console.log("---GRAPH COMPLETED---");
 
@@ -261,8 +261,7 @@ Deno.serve(async (req) => {
     --header 'Content-Type: application/json' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？"}'
 
-  curl -i --location --request POST 'http://127.0.0.1:9000/' \
-    --header 'Content-Type: application/json' \
-    --data '{"query":"哪些公司使用了阿里云来帮助减排？"}'
-  
-*/
+  Health check:
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance/health'     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+
+  */

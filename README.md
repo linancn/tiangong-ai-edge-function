@@ -53,14 +53,21 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compl
     --data '{"name":"Functions"}'
 ```
 
-## Docker Deployment AWS Lambda
+## Docker Deployment on AWS ECS Fargate
 
 ```bash
 docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6 .
 
 docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6
 
+aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
+
 docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6
+
+aws ecs describe-task-definition --task-definition langserve:8
+
+aws ecs describe-tasks --cluster production --tasks cb72b1cf0ee240b3b3820f3e9431cb7c
+
 ```
 
 ## Remote Config
