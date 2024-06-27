@@ -1,5 +1,5 @@
 import { Hono } from "jsr:@hono/hono";
-import esgComplianceProcess from "../controllers/esg_compliance.ts";
+import esgComplianceProcess from "../graph/esg_compliance.ts";
 
 const esgRouter = new Hono();
 
