@@ -3,7 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
+/// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
 
 // import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
 import {
@@ -17,7 +17,7 @@ import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
 import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import { Context } from "jsr:@hono/hono";
-import SearchEsgTool from "../../_shared/search_esg_tool.ts";
+import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
@@ -56,7 +56,7 @@ async function esgComplianceProcess(c: Context) {
       ),
     };
     // We call the tool_executor and get back a response.
-    const response = await toolExecutor.invoke(action);
+    const response = await toolExecutor._execute(action);
     // We use the response to create a FunctionMessage.
     const functionMessage = new FunctionMessage({
       name: action.tool,

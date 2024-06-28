@@ -14,6 +14,8 @@ curl -fsSL https://deno.land/install.sh | sh # Then manually add the deno direct
 npm i supabase --save-dev
 npm update supabase --save-dev
 
+deno cache --reload *.ts
+
 npx supabase start
 
 ```
@@ -79,6 +81,7 @@ npx supabase functions new esg_compliance
 
 npx supabase functions deploy esg_compliance --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy edu_search --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy esg_search --project-ref qyyqlnwqwgvzxnccnbgm
 
 npx supabase secrets set --env-file ./supabase/.env.local --project-ref qyyqlnwqwgvzxnccnbgm
 ```
