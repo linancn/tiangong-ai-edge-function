@@ -1,6 +1,6 @@
 import { Hono } from "jsr:@hono/hono";
 import { bearerAuth } from "jsr:@hono/hono/bearer-auth";
-import esgComplianceProcess from "../controller/esg_compliance.ts";
+import esgComplianceProcess from "../controller/esg_compliance_graph.ts";
 
 const token = Deno.env.get("TOKEN") ?? "";
 

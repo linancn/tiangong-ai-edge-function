@@ -5,7 +5,8 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 /// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-// import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
+import "https://esm.sh/duck-duck-scrape";
+
 import {
   AIMessage,
   BaseMessage,
@@ -17,6 +18,7 @@ import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
 import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import { Context } from "jsr:@hono/hono";
+import { DuckDuckGoSearch } from "https://esm.sh/@langchain/community/tools/duckduckgo_search";
 import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
@@ -25,19 +27,15 @@ import { pull } from "https://esm.sh/langchain/hub";
 import { z } from "https://esm.sh/zod";
 import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema";
 
-// import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
-// import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
-
 async function esgComplianceProcess(c: Context) {
   const req = c.req;
-  
+
   const { query } = await req.json();
 
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
   const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
 
-  // const tools = [new DuckDuckGoSearch({ maxResults: 3 })];
-  const tools = [new SearchEsgTool()];
+  const tools = [new SearchEsgTool(), new DuckDuckGoSearch({ maxResults: 3 })];
 
   const toolExecutor = new ToolExecutor({
     tools,
@@ -242,6 +240,6 @@ async function esgComplianceProcess(c: Context) {
     JSON.stringify(finalState, null, 2),
     { headers: { "Content-Type": "application/json" } },
   );
-};
+}
 
 export default esgComplianceProcess;

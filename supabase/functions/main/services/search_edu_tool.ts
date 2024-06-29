@@ -8,7 +8,7 @@ type FilterType = { rec_id: { "$in": string[] } } | Record<string, never>;
 class SearchEsgTool extends DynamicStructuredTool {
   constructor() {
     super({
-      name: "Search_ESG_Tool",
+      name: "Search_Edu_Tool",
       description: "Call this tool to search the ESG database for information.",
       schema: z.object({
         query: z.string().describe("Requirements or questions from the user."),
