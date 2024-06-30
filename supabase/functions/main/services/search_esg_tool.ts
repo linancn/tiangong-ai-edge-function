@@ -3,7 +3,7 @@
 import { DynamicStructuredTool } from "https://esm.sh/@langchain/core/tools";
 import { z } from "https://esm.sh/zod";
 
-type FilterType = { rec_id: { "$in": string[] } } | Record<string, never>;
+type FilterType = { rec_id: { "$in": string[] } } | Record<string | number | symbol, never>;
 
 class SearchEsgTool extends DynamicStructuredTool {
   constructor() {

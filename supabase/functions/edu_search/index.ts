@@ -53,7 +53,7 @@ const opensearchClient = new Client({
 
 const sql = postgres(postgres_uri);
 
-async function getEsgMeta(id: string[]) {
+async function getEduMeta(id: string[]) {
   const records = await sql`
     SELECT
       id, name, chapter_number, description
@@ -63,11 +63,25 @@ async function getEsgMeta(id: string[]) {
   return records;
 }
 
+type FilterType =
+  | { course: string[] }
+  | Record<string | number | symbol, never>;
+type PCFilter = {
+  $and: { course: string }[];
+};
+
+function filterToPCQuery(filter: FilterType): PCFilter {
+  const { course } = filter;
+  const andConditions = course.map((c) => ({ course: c }));
+
+  return { $and: andConditions };
+}
+
 const search = async (
   semantic_query: string,
   full_text_query: string[],
   topK: number,
-  filter: object | undefined = undefined,
+  filter: FilterType,
 ) => {
   // console.log(query, topK, filter);
 
@@ -83,7 +97,7 @@ const search = async (
             match: { text: query },
           })),
           filter: [
-            { term: filter },
+            { terms: { course: filter.course } },
           ],
         },
       }
@@ -97,15 +111,28 @@ const search = async (
     size: topK,
   };
 
-  console.log(body);
+  // console.log(body.query.bool.filter);
+  // console.log(filterToPCQuery(filter));
+
+  interface QueryOptions {
+    vector: number[];
+    topK: number;
+    includeMetadata: boolean;
+    filter?: PCFilter;
+  };
+
+  const queryOptions: QueryOptions = {
+    vector: searchVector,
+    topK: topK,
+    includeMetadata: true,
+  };
+
+  if (filter) {
+    queryOptions.filter = filterToPCQuery(filter);
+  };
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
-    index.namespace(pinecone_namespace_edu).query({
-      vector: searchVector,
-      filter: filter,
-      topK: topK,
-      includeMetadata: true,
-    }),
+    index.namespace(pinecone_namespace_edu).query(queryOptions),
     opensearchClient.search({
       index: opensearch_index_name,
       body: body,
@@ -118,6 +145,10 @@ const search = async (
 
   // console.log(pineconeResponse);
   // console.log(fulltextResponse);
+
+  // if (!pineconeResponse || !fulltextResponse) {
+  //   throw new Error("One or both of the search queries failed");
+  // }
 
   const rec_id_set = new Set();
   const unique_docs = [];
@@ -135,7 +166,7 @@ const search = async (
         });
       }
     }
-  }
+  };
 
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
@@ -148,7 +179,7 @@ const search = async (
         text: doc._source.text,
       });
     }
-  }
+  };
 
   const unique_doc_id_set = new Set<string>();
   for (const doc of unique_docs) {
@@ -157,7 +188,7 @@ const search = async (
 
   // console.log(unique_doc_id_set);
 
-  const pgResponse = await getEsgMeta(Array.from(unique_doc_id_set));
+  const pgResponse = await getEduMeta(Array.from(unique_doc_id_set));
 
   const docList = unique_docs.map((doc) => {
     const record = pgResponse.find((r) => r.id === doc.id);
@@ -216,7 +247,7 @@ Deno.serve(async (req) => {
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}, "topK": 3}'
-  
+
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
