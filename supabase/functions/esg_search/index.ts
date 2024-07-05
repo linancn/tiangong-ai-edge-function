@@ -64,17 +64,17 @@ async function getEsgMeta(id: string[]) {
 }
 
 type FilterType =
-  | { id: string[] }
+  | { reportId: string[] }
   | Record<string | number | symbol, never>;
 type PCFilter = {
-  $and: { id: string }[];
+  $or: { rec_id: string }[];
 };
 
 function filterToPCQuery(filter: FilterType): PCFilter {
-  const { id } = filter;
-  const andConditions = id.map((c) => ({ id: c }));
+  const { reportId } = filter;
+  const andConditions = reportId.map((c) => ({ rec_id: c }));
 
-  return { $and: andConditions };
+  return { $or: andConditions };
 }
 
 const search = async (
@@ -97,7 +97,7 @@ const search = async (
             match: { text: query },
           })),
           filter: [
-            { term: { id: filter.id } },
+            { terms: { reportId: filter.reportId } },
           ],
         },
       }
@@ -111,27 +111,40 @@ const search = async (
     size: topK,
   };
 
-  // console.log(body);
+  // console.log(filter.reportId);
+  // console.log(body.query.bool.filter);
+  console.log(filterToPCQuery(filter));
+  interface QueryOptions {
+    vector: number[];
+    topK: number;
+    includeMetadata: boolean;
+    filter?: PCFilter;
+  };
+
+  const queryOptions: QueryOptions = {
+    vector: searchVector,
+    topK: topK,
+    includeMetadata: true,
+  };
+
+  if (filter) {
+    queryOptions.filter = filterToPCQuery(filter);
+  };
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
-    index.namespace(pinecone_namespace_esg).query({
-      vector: searchVector,
-      filter: filter,
-      topK: topK,
-      includeMetadata: true,
-    }),
+    index.namespace(pinecone_namespace_esg).query(queryOptions),
     opensearchClient.search({
       index: opensearch_index_name,
       body: body,
     }),
   ]);
 
-  if (!pineconeResponse) {
-    console.error("Pinecone query response is empty.");
-  }
+  // if (!pineconeResponse) {
+  //   console.error("Pinecone query response is empty.");
+  // }
 
   // console.log(pineconeResponse);
-  console.log(fulltextResponse);
+  // console.log(fulltextResponse);
 
   const rec_id_set = new Set();
   const unique_docs = [];
@@ -203,17 +216,17 @@ Deno.serve(async (req) => {
   }
 
   const { query, filter, topK } = await req.json();
-  console.log(query, filter);
+  // console.log(query, filter);
 
   const res = await generateQuery(query);
-  console.log(res);
+  // console.log(res);
   const result = await search(
     res.semantic_query,
     res.fulltext_query_chi_tra,
     topK,
     filter,
   );
-  console.log(result);
+  // console.log(result);
 
   return new Response(
     JSON.stringify(result),
@@ -229,8 +242,8 @@ Deno.serve(async (req) => {
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --header 'x-password: adsfj_hu_!8v8212334klk' \
-    --data '{"query": "采取了哪些减排措施?", "filter": {"rec_id": ["73338fdb-5c79-44fb-adbf-09f2b580acc8"]}, "topK": 3}'
+    --header 'x-password: xxx' \
+    --data '{"query": "采取了哪些减排措施?", "filter": {"reportId": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
   
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
