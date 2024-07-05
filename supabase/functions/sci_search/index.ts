@@ -41,13 +41,6 @@ async function getMeta(doi: string[]) {
   return records;
 }
 
-type FilterType =
-  | { journal: string[] }
-  | Record<string | number | symbol, never>;
-type PCFilter = {
-  $or: { journal: string }[];
-};
-
 function filterToPCQuery(filter: FilterType): PCFilter {
   const { journal } = filter;
   const andConditions = journal.map((c) => ({ journal: c }));
@@ -62,15 +55,22 @@ function formatTimestampToYearMonth(timestamp: number): string {
   return `${year}-${month}`;
 }
 
+type FilterType =
+  | { journal: string[] }
+  | Record<string | number | symbol, never>;
+type PCFilter = {
+  $or: { journal: string }[];
+};
+
 const search = async (
   semantic_query: string,
   topK: number,
-  filter: FilterType,
+  filter?: FilterType,
 ) => {
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
-  console.log(filter);
-  console.log(filterToPCQuery(filter));
+  // console.log(filter);
+  // console.log(filterToPCQuery(filter));
 
   interface QueryOptions {
     vector: number[];
@@ -93,7 +93,7 @@ const search = async (
     queryOptions,
   );
 
-  console.log(pineconeResponse);
+  // console.log(pineconeResponse);
 
   const rec_id_set = new Set();
   const unique_docs = [];
