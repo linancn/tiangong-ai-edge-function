@@ -56,20 +56,34 @@ const sql = postgres(postgres_uri);
 async function getEsgMeta(id: string[]) {
   const records = await sql`
     SELECT
-      id, report_title, company_name, publication_date
+      id, report_title, company_name, publication_date, language
     FROM esg_meta
     WHERE id IN ${sql(id)}
   `;
   return records;
 }
 
+type FilterType =
+  | { reportId: string[] }
+  | Record<string | number | symbol, never>;
+type PCFilter = {
+  $or: { rec_id: string }[];
+};
+
+function filterToPCQuery(filter: FilterType): PCFilter {
+  const { reportId } = filter;
+  const andConditions = reportId.map((c) => ({ rec_id: c }));
+
+  return { $or: andConditions };
+}
+
 const search = async (
   semantic_query: string,
   full_text_query: string[],
   topK: number,
-  filter: object | undefined = undefined,
+  filter: FilterType,
 ) => {
-  console.log(full_text_query, topK, filter);
+  // console.log(full_text_query, topK, filter);
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
@@ -83,7 +97,7 @@ const search = async (
             match: { text: query },
           })),
           filter: [
-            { term: filter },
+            { terms: { reportId: filter.reportId } },
           ],
         },
       }
@@ -97,27 +111,40 @@ const search = async (
     size: topK,
   };
 
-  console.log(body);
+  // console.log(filter.reportId);
+  // console.log(body.query.bool.filter);
+  console.log(filterToPCQuery(filter));
+  interface QueryOptions {
+    vector: number[];
+    topK: number;
+    includeMetadata: boolean;
+    filter?: PCFilter;
+  };
+
+  const queryOptions: QueryOptions = {
+    vector: searchVector,
+    topK: topK,
+    includeMetadata: true,
+  };
+
+  if (filter) {
+    queryOptions.filter = filterToPCQuery(filter);
+  };
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
-    index.namespace(pinecone_namespace_esg).query({
-      vector: searchVector,
-      filter: filter,
-      topK: topK,
-      includeMetadata: true,
-    }),
+    index.namespace(pinecone_namespace_esg).query(queryOptions),
     opensearchClient.search({
       index: opensearch_index_name,
       body: body,
     }),
   ]);
 
-  if (!pineconeResponse) {
-    console.error("Pinecone query response is empty.");
-  }
+  // if (!pineconeResponse) {
+  //   console.error("Pinecone query response is empty.");
+  // }
 
-  console.log(pineconeResponse);
-  console.log(fulltextResponse);
+  // console.log(pineconeResponse);
+  // console.log(fulltextResponse);
 
   const rec_id_set = new Set();
   const unique_docs = [];
@@ -155,7 +182,7 @@ const search = async (
     unique_doc_id_set.add(doc.id);
   }
 
-  console.log(unique_doc_id_set);
+  // console.log(unique_doc_id_set);
 
   const pgResponse = await getEsgMeta(Array.from(unique_doc_id_set));
 
@@ -165,10 +192,11 @@ const search = async (
     if (record) {
       const report_title = record.report_title;
       const company_name = record.company_name;
-      const publication_date = record.publication_date;
+      const publicationDate = new Date(record.publication_date);
+      const formattedDate = publicationDate.toISOString().split('T')[0];
       const page_number = doc.page_number;
       const sourceEntry =
-        ` ${company_name}: **${report_title} (${page_number})**. ${publication_date}.`;
+        ` ${company_name}: **${report_title} (${page_number})**. ${formattedDate}.`;
       return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");
@@ -189,17 +217,17 @@ Deno.serve(async (req) => {
   }
 
   const { query, filter, topK } = await req.json();
-  console.log(query, filter);
+  // console.log(query, filter);
 
   const res = await generateQuery(query);
-  console.log(res);
+  // console.log(res);
   const result = await search(
     res.semantic_query,
-    res.fulltext_query_eng,
+    [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim,...res.fulltext_query_eng],
     topK,
     filter,
   );
-  console.log(result);
+  // console.log(result);
 
   return new Response(
     JSON.stringify(result),
@@ -212,10 +240,11 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"query": "哪些公司使用了阿里云来帮助减排?", "topK": 3}'
+    --header 'x-password: xxx' \
+    --data '{"query": "采取了哪些减排措施?", "filter": {"reportId": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
   
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \

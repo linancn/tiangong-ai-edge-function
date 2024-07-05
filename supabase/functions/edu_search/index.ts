@@ -67,14 +67,14 @@ type FilterType =
   | { course: string[] }
   | Record<string | number | symbol, never>;
 type PCFilter = {
-  $and: { course: string }[];
+  $or: { course: string }[];
 };
 
 function filterToPCQuery(filter: FilterType): PCFilter {
   const { course } = filter;
   const andConditions = course.map((c) => ({ course: c }));
 
-  return { $and: andConditions };
+  return { $or: andConditions };
 }
 
 const search = async (
@@ -110,6 +110,7 @@ const search = async (
       },
     size: topK,
   };
+  // console.log(filter.course);
 
   // console.log(body.query.bool.filter);
   // console.log(filterToPCQuery(filter));
@@ -226,7 +227,7 @@ Deno.serve(async (req) => {
   // console.log(res);
   const result = await search(
     res.semantic_query,
-    res.fulltext_query_chi_sim,
+    [...res.fulltext_query_chi_sim,...res.fulltext_query_eng],
     topK,
     filter,
   );
