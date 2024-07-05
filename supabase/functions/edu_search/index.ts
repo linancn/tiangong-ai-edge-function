@@ -93,19 +93,21 @@ const search = async (
     query: filter
       ? {
         bool: {
-          must: full_text_query.map((query) => ({
+          should: full_text_query.map((query) => ({
             match: { text: query },
           })),
+          minimum_should_match: 1,
           filter: [
-            { terms: { course: filter.course } },
+            { terms: filter },
           ],
         },
       }
       : {
         bool: {
-          must: full_text_query.map((query) => ({
+          should: full_text_query.map((query) => ({
             match: { text: query },
           })),
+          minimum_should_match: 1,
         },
       },
     size: topK,
@@ -120,7 +122,7 @@ const search = async (
     topK: number;
     includeMetadata: boolean;
     filter?: PCFilter;
-  };
+  }
 
   const queryOptions: QueryOptions = {
     vector: searchVector,
@@ -130,7 +132,7 @@ const search = async (
 
   if (filter) {
     queryOptions.filter = filterToPCQuery(filter);
-  };
+  }
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_edu).query(queryOptions),
@@ -145,7 +147,7 @@ const search = async (
   // }
 
   // console.log(pineconeResponse);
-  // console.log(fulltextResponse);
+  // console.log(fulltextResponse.body.hits.hits);
 
   // if (!pineconeResponse || !fulltextResponse) {
   //   throw new Error("One or both of the search queries failed");
@@ -167,7 +169,7 @@ const search = async (
         });
       }
     }
-  };
+  }
 
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
@@ -180,7 +182,7 @@ const search = async (
         text: doc._source.text,
       });
     }
-  };
+  }
 
   const unique_doc_id_set = new Set<string>();
   for (const doc of unique_docs) {
@@ -227,7 +229,7 @@ Deno.serve(async (req) => {
   // console.log(res);
   const result = await search(
     res.semantic_query,
-    [...res.fulltext_query_chi_sim,...res.fulltext_query_eng],
+    [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
     filter,
   );
@@ -247,11 +249,11 @@ Deno.serve(async (req) => {
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}, "topK": 3}'
+    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --header 'x-password: adsfj_hu_!8v823ksklk' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": "水处理工程"}, "topK": 3}'
+    --header 'x-password: XXX' \
+    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
 */

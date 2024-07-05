@@ -56,7 +56,7 @@ const sql = postgres(postgres_uri);
 async function getEsgMeta(id: string[]) {
   const records = await sql`
     SELECT
-      id, report_title, company_name, publication_date, language
+      id, report_title, company_name, publication_date
     FROM esg_meta
     WHERE id IN ${sql(id)}
   `;
@@ -87,39 +87,41 @@ const search = async (
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
-  console.log(filter);
+  // console.log(filter);
 
   const body = {
     query: filter
       ? {
         bool: {
-          must: full_text_query.map((query) => ({
+          should: full_text_query.map((query) => ({
             match: { text: query },
           })),
+          minimum_should_match: 1,
           filter: [
-            { terms: { reportId: filter.reportId } },
+            { terms: filter },
           ],
         },
       }
       : {
         bool: {
-          must: full_text_query.map((query) => ({
+          should: full_text_query.map((query) => ({
             match: { text: query },
           })),
+          minimum_should_match: 1,
         },
       },
     size: topK,
   };
 
-  // console.log(filter.reportId);
+  // console.log(body);
   // console.log(body.query.bool.filter);
-  console.log(filterToPCQuery(filter));
+  // console.log(filterToPCQuery(filter));
   interface QueryOptions {
     vector: number[];
     topK: number;
     includeMetadata: boolean;
     filter?: PCFilter;
-  };
+  }
 
   const queryOptions: QueryOptions = {
     vector: searchVector,
@@ -129,7 +131,7 @@ const search = async (
 
   if (filter) {
     queryOptions.filter = filterToPCQuery(filter);
-  };
+  }
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_esg).query(queryOptions),
@@ -144,7 +146,7 @@ const search = async (
   // }
 
   // console.log(pineconeResponse);
-  // console.log(fulltextResponse);
+  // console.log(fulltextResponse.body.hits.hits);
 
   const rec_id_set = new Set();
   const unique_docs = [];
@@ -192,12 +194,12 @@ const search = async (
     if (record) {
       const report_title = record.report_title;
       const company_name = record.company_name;
-      const publicationDate = new Date(record.publication_date);
-      const formattedDate = publicationDate.toISOString().split('T')[0];
+      const publication_date = new Date(record.publication_date);
+      const formatted_date = publication_date.toISOString().split("T")[0];
       const page_number = doc.page_number;
-      const sourceEntry =
-        `${company_name}: **${report_title} (${page_number})**. ${formattedDate}.`;
-      return { content: doc.text, source: sourceEntry };
+      const source_entry =
+        `${company_name}: **${report_title} (${page_number})**. ${formatted_date}.`;
+      return { content: doc.text, source: source_entry };
     } else {
       throw new Error("Record not found");
     }
@@ -221,9 +223,18 @@ Deno.serve(async (req) => {
 
   const res = await generateQuery(query);
   // console.log(res);
+  // console.log([
+  //   ...res.fulltext_query_chi_tra,
+  //   ...res.fulltext_query_chi_sim,
+  //   ...res.fulltext_query_eng,
+  // ]);
   const result = await search(
     res.semantic_query,
-    [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim,...res.fulltext_query_eng],
+    [
+      ...res.fulltext_query_chi_tra,
+      ...res.fulltext_query_chi_sim,
+      ...res.fulltext_query_eng,
+    ],
     topK,
     filter,
   );
@@ -245,7 +256,7 @@ Deno.serve(async (req) => {
     --header 'Content-Type: application/json' \
     --header 'x-password: xxx' \
     --data '{"query": "采取了哪些减排措施?", "filter": {"reportId": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
-  
+
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
