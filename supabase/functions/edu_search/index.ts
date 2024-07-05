@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
   // console.log(res);
   const result = await search(
     res.semantic_query,
-    res.fulltext_query_chi_sim,
+    [...res.fulltext_query_chi_sim,...res.fulltext_query_eng],
     topK,
     filter,
   );
