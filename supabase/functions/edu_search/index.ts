@@ -201,9 +201,9 @@ const search = async (
       const chapter_number = record.chapter_number;
       const description = record.description;
       const course = doc.course;
-      const sourceEntry =
+      const source_entry =
         `${course}: **${name} (Ch. ${chapter_number})**. ${description}.`;
-      return { content: doc.text, source: sourceEntry };
+      return { content: doc.text, source: source_entry };
     } else {
       throw new Error("Record not found");
     }
