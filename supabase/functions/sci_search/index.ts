@@ -20,7 +20,6 @@ const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_sci = Deno.env.get("PINECONE_NAMESPACE_SCI") ?? "";
 
-
 const postgres_uri = Deno.env.get("POSTGRES_URI") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
@@ -35,7 +34,7 @@ const sql = postgres(postgres_uri);
 async function getMeta(doi: string[]) {
   const records = await sql`
     SELECT
-      doi, journal, title , authors, date
+      doi, title, authors
     FROM journals
     WHERE doi IN ${sql(doi)}
   `;
@@ -56,13 +55,18 @@ function filterToPCQuery(filter: FilterType): PCFilter {
   return { $or: andConditions };
 }
 
+function formatTimestampToYearMonth(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const year = date.getFullYear();
+  const month = ("0" + (date.getMonth() + 1)).slice(-2);
+  return `${year}-${month}`;
+}
+
 const search = async (
   semantic_query: string,
   topK: number,
   filter: FilterType,
 ) => {
-
-
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
   console.log(filter);
@@ -73,7 +77,7 @@ const search = async (
     topK: number;
     includeMetadata: boolean;
     filter?: PCFilter;
-  };
+  }
 
   const queryOptions: QueryOptions = {
     vector: searchVector,
@@ -83,31 +87,35 @@ const search = async (
 
   if (filter) {
     queryOptions.filter = filterToPCQuery(filter);
-  };
+  }
 
-  const pineconeResponse = await index.namespace(pinecone_namespace_sci).query(queryOptions);
+  const pineconeResponse = await index.namespace(pinecone_namespace_sci).query(
+    queryOptions,
+  );
 
   console.log(pineconeResponse);
-
 
   const rec_id_set = new Set();
   const unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     if (doc.metadata && doc.metadata.doi) {
-      const id = doc.metadata.doi; 
-  
+      const id = doc.metadata.doi;
+      const date = doc.metadata.date as number; 
+
       if (!rec_id_set.has(id)) {
-        rec_id_set.add(id); 
+        rec_id_set.add(id);
         unique_docs.push({
-          id: String(id), 
-          text: doc.metadata.text, 
+          id: String(id),
+          text: doc.metadata.text,
+          journal: doc.metadata.journal,
+          date: formatTimestampToYearMonth(date),
         });
       }
     }
   }
 
-  const uniqueIds = new Set(unique_docs.map(doc => doc.id));
+  const uniqueIds = new Set(unique_docs.map((doc) => doc.id));
   // console.log(unique_doc_id_set);
 
   const pgResponse = await getMeta(Array.from(uniqueIds));
@@ -117,12 +125,11 @@ const search = async (
 
     if (record) {
       const title = record.title;
-      const journal = record.journal;
+      const journal = doc.journal;
       const authors = record.authors.join(", ");
-      const date = record.date;
+      const date = doc.date;
       const url = `https://doi.org/${record.doi}`;
-      const sourceEntry =
-        ` ${title}, ${journal}. ${authors}. ${date}. ${url}`;
+      const sourceEntry = `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
       return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");

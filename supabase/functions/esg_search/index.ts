@@ -196,7 +196,7 @@ const search = async (
       const formattedDate = publicationDate.toISOString().split('T')[0];
       const page_number = doc.page_number;
       const sourceEntry =
-        ` ${company_name}: **${report_title} (${page_number})**. ${formattedDate}.`;
+        `${company_name}: **${report_title} (${page_number})**. ${formattedDate}.`;
       return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");

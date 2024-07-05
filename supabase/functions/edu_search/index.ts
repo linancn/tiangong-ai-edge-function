@@ -200,7 +200,7 @@ const search = async (
       const description = record.description;
       const course = doc.course;
       const sourceEntry =
-        ` ${course}: **${name} (Ch. ${chapter_number})**. ${description}.`;
+        `${course}: **${name} (Ch. ${chapter_number})**. ${description}.`;
       return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");
