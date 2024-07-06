@@ -41,7 +41,10 @@ async function getMeta(doi: string[]) {
   return records;
 }
 
-function filterToPCQuery(filter: FilterType): PCFilter {
+function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
+  if (!filter || Object.keys(filter).length === 0) {
+    return undefined;
+  }
   const { journal } = filter;
   const andConditions = journal.map((c) => ({ journal: c }));
 
@@ -85,7 +88,7 @@ const search = async (
     includeMetadata: true,
   };
 
-  if (filter) {
+  if (filter && Object.keys(filter).length > 0) {
     queryOptions.filter = filterToPCQuery(filter);
   }
 
