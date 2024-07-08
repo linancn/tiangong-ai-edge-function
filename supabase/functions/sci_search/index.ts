@@ -41,13 +41,6 @@ async function getMeta(doi: string[]) {
   return records;
 }
 
-function filterToPCQuery(filter: FilterType): PCFilter {
-  const { journal } = filter;
-  const andConditions = journal.map((c) => ({ journal: c }));
-
-  return { $or: andConditions };
-}
-
 function formatTimestampToYearMonth(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   const year = date.getFullYear();
@@ -56,11 +49,33 @@ function formatTimestampToYearMonth(timestamp: number): string {
 }
 
 type FilterType =
-  | { journal: string[] }
+  | { journal?: string[]; date?: string}
   | Record<string | number | symbol, never>;
+type JournalCondition = { $or: { journal: string }[] };
+type DateCondition = { date: string };
 type PCFilter = {
-  $or: { journal: string }[];
+  $and?: (JournalCondition | DateCondition)[];
 };
+
+function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
+  if (!filter || Object.keys(filter).length === 0) {
+    return undefined;
+  }
+
+  const conditions = [];
+
+  if (filter.journal) {
+    const journalConditions = filter.journal.map((c) => ({ journal: c }));
+    conditions.push({ $or: journalConditions });
+  }
+  
+  if (filter.date) {
+    conditions.push({ date: filter.date });
+  }
+  return conditions.length > 0 ? { $and: conditions } : undefined;
+}
+
+
 
 const search = async (
   semantic_query: string,
@@ -69,8 +84,8 @@ const search = async (
 ) => {
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
-  // console.log(filter);
-  // console.log(filterToPCQuery(filter));
+  console.log(filter);
+  console.log(filterToPCQuery(filter));
 
   interface QueryOptions {
     vector: number[];
@@ -85,7 +100,7 @@ const search = async (
     includeMetadata: true,
   };
 
-  if (filter) {
+  if (filter && Object.keys(filter).length > 0) {
     queryOptions.filter = filterToPCQuery(filter);
   }
 

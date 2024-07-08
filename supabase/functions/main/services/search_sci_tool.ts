@@ -4,26 +4,26 @@ import { DynamicStructuredTool } from "https://esm.sh/@langchain/core/tools";
 import { z } from "https://esm.sh/zod";
 
 type FilterType =
-  | { course: string[] }
+  | { journal: string[] }
   | Record<string | number | symbol, never>;
 
-class SearchEduTool extends DynamicStructuredTool {
+class SearchSciTool extends DynamicStructuredTool {
   constructor() {
     super({
-      name: "Search_Edu_Tool",
+      name: "Search_Sci_Tool",
       description:
-        "Call this tool to search the environmental science educational materials database for information.",
+        "Call this tool to search the environmental vector database for specialized information.",
       schema: z.object({
         query: z.string().describe("Requirements or questions from the user."),
-        course: z.array(z.string()).default([]).describe(
-          "course name to filter the search.",
+        journal: z.array(z.string()).default([]).describe(
+          "journal name to filter the search.",
         ),
         topK: z.number().default(5).describe("Number of results to return."),
       }),
       func: async (
-        { query, course, topK }: {
+        { query, journal, topK }: {
           query: string;
-          course: string[];
+          journal: string[];
           topK: number;
         },
       ) => {
@@ -31,14 +31,14 @@ class SearchEduTool extends DynamicStructuredTool {
           throw new Error("Query is empty.");
         }
 
-        const filter: FilterType = course.length > 0 ? { course: course } : {};
+        const filter: FilterType = journal.length > 0 ? { journal: journal } : {};
         const isFilterEmpty = Object.keys(filter).length === 0;
         const requestBody = JSON.stringify(
           isFilterEmpty ? { query, topK } : { query, topK, filter },
         );
 
         const url =
-          "https://qyyqlnwqwgvzxnccnbgm.supabase.co/functions/v1/esg_search";
+          "https://qyyqlnwqwgvzxnccnbgm.supabase.co/functions/v1/sci_search";
 
         try {
           const response = await fetch(url, {
@@ -69,4 +69,4 @@ class SearchEduTool extends DynamicStructuredTool {
   }
 }
 
-export default SearchEduTool;
+export default SearchSciTool;
