@@ -49,9 +49,11 @@ function formatTimestampToYearMonth(timestamp: number): string {
 }
 
 type FilterType =
-  | { journal?: string[]; date?: string}
+  | { journal?: string[]; date?: string }
   | Record<string | number | symbol, never>;
+
 type JournalCondition = { $or: { journal: string }[] };
+
 type DateCondition = { date: string };
 type PCFilter = {
   $and?: (JournalCondition | DateCondition)[];
@@ -68,14 +70,12 @@ function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
     const journalConditions = filter.journal.map((c) => ({ journal: c }));
     conditions.push({ $or: journalConditions });
   }
-  
+
   if (filter.date) {
     conditions.push({ date: filter.date });
   }
   return conditions.length > 0 ? { $and: conditions } : undefined;
 }
-
-
 
 const search = async (
   semantic_query: string,
@@ -116,7 +116,7 @@ const search = async (
   for (const doc of pineconeResponse.matches) {
     if (doc.metadata && doc.metadata.doi) {
       const id = doc.metadata.doi;
-      const date = doc.metadata.date as number; 
+      const date = doc.metadata.date as number;
 
       if (!rec_id_set.has(id)) {
         rec_id_set.add(id);
@@ -144,7 +144,8 @@ const search = async (
       const authors = record.authors.join(", ");
       const date = doc.date;
       const url = `https://doi.org/${record.doi}`;
-      const sourceEntry = `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
+      const sourceEntry =
+        `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
       return { content: doc.text, source: sourceEntry };
     } else {
       throw new Error("Record not found");
