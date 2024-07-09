@@ -83,5 +83,7 @@ npx supabase functions deploy esg_compliance --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy edu_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy esg_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy sci_search --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy patent_search --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy report_search --project-ref qyyqlnwqwgvzxnccnbgm
 
 ```
