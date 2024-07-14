@@ -1,0 +1,166 @@
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
+
+// Setup type definitions for built-in Supabase Runtime APIs
+import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
+
+import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
+import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
+import { corsHeaders } from "../_shared/cors.ts";
+import generateQuery from "../_shared/generate_query.ts";
+
+const x_password = Deno.env.get("X_PASSWORD") ?? "";
+
+const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
+const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
+
+const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
+const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
+const pinecone_namespace_patent = Deno.env.get("PINECONE_NAMESPACE_PATENT") ?? "";
+
+
+
+const openaiClient = new OpenAIEmbeddings({
+  apiKey: openai_api_key,
+  model: openai_embedding_model,
+});
+
+const pc = new Pinecone({ apiKey: pinecone_api_key });
+const index = pc.index(pinecone_index_name);
+
+
+
+type FilterType =
+  | { country?: string[]; publication_date?: string}
+  | Record<string | number | symbol, never>;
+type CountryCondition = { $or: { country: string }[] };
+type DateCondition = { publication_date: string };
+type PCFilter = {
+  $and?: (CountryCondition | DateCondition)[];
+};
+
+function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
+  if (!filter || Object.keys(filter).length === 0) {
+    return undefined;
+  }
+
+  const conditions = [];
+
+  if (filter.country) {
+    const CountryConditions = filter.country.map((c) => ({ country: c }));
+    conditions.push({ $or: CountryConditions });
+  }
+  
+  if (filter.publication_date) {
+    conditions.push({ publication_date: filter.publication_date });
+  }
+  return conditions.length > 0 ? { $and: conditions } : undefined;
+}
+
+
+
+const search = async (
+  semantic_query: string,
+  topK: number,
+  filter?: FilterType,
+) => {
+  const searchVector = await openaiClient.embedQuery(semantic_query);
+
+  // console.log(filter);
+  // console.log(filterToPCQuery(filter));
+
+  interface QueryOptions {
+    vector: number[];
+    topK: number;
+    includeMetadata: boolean;
+    filter?: PCFilter;
+  }
+
+  const queryOptions: QueryOptions = {
+    vector: searchVector,
+    topK: topK,
+    includeMetadata: true,
+  };
+
+  if (filter && Object.keys(filter).length > 0) {
+    queryOptions.filter = filterToPCQuery(filter);
+  }
+
+  const pineconeResponse = await index.namespace(pinecone_namespace_patent).query(
+    queryOptions,
+  );
+
+  // console.log(pineconeResponse);
+
+
+  const unique_docs = [];
+
+  for (const doc of pineconeResponse.matches) {
+    if (doc.metadata && doc.id) {
+      unique_docs.push({
+        id: String(doc.id),
+        text: doc.metadata.abstract,
+        country: doc.metadata.country,
+        publication_date: doc.metadata.publication_date,
+        title: doc.metadata.title,
+        url: doc.metadata.url,
+      });
+      }
+    }
+
+  if (unique_docs.length > 0) {
+    const docList = unique_docs.map((doc) => {
+      const title = doc.title;
+      const country = doc.country;
+      const id = doc.id;
+      const date = doc.publication_date;
+      const url = doc.url;
+      const sourceEntry = `[${title}, ${id}, ${country}. ${date}.](${url})`;
+      return { content: doc.text, source: sourceEntry };
+    });
+    return docList;
+  } else {
+    throw new Error("Record not found");
+  }
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const password = req.headers.get("x-password");
+  if (password !== x_password) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { query, filter, topK } = await req.json();
+  // console.log(query, filter);
+
+  const res = await generateQuery(query);
+
+  const result = await search(
+    res.semantic_query,
+    topK,
+    filter,
+  );
+  // console.log(result);
+
+  return new Response(
+    JSON.stringify(result),
+    { headers: { "Content-Type": "application/json" } },
+  );
+});
+
+/* To invoke locally:
+
+  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
+  2. Make an HTTP request:
+
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+    --header 'Content-Type: application/json' \
+    --header 'x-password: xxx' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"], "publication_date": {"$gte": 19900101}}, "topK": 3}'
+*/
