@@ -9,15 +9,14 @@ import {
 import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { ChatPromptTemplate } from "https://esm.sh/v135/@langchain/core@0.2.11/prompts.js";
 import { Context } from "jsr:@hono/hono";
 import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
-import { pull } from "https://esm.sh/langchain/hub";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
-import { ChatPromptTemplate } from "https://esm.sh/v135/@langchain/core@0.2.11/prompts.js";
 
-async function esgComplianceProcess(c: Context) {
+async function ragProcess(c: Context) {
   const req = c.req;
   const { query } = await req.json();
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -133,4 +132,4 @@ async function esgComplianceProcess(c: Context) {
   );
 }
 
-export default esgComplianceProcess;
+export default ragProcess;
