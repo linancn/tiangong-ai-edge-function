@@ -9,7 +9,7 @@ import {
 import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
-import { ChatPromptTemplate } from "https://esm.sh/v135/@langchain/core@0.2.11/prompts.js";
+import { ChatPromptTemplate } from "https://esm.sh/v135/@langchain/core/prompts.js";
 import { Context } from "jsr:@hono/hono";
 import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
