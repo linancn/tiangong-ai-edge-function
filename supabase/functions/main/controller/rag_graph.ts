@@ -9,14 +9,14 @@ import {
 import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 
 import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
-import { ChatPromptTemplate } from "https://esm.sh/v135/@langchain/core/prompts.js";
+import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import { Context } from "jsr:@hono/hono";
 import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
-import { StructuredToolInterface } from "https://esm.sh/v135/@langchain/core/tools.d.ts";
-import { RunnableToolLike } from "https://esm.sh/v135/@langchain/core/runnables.d.ts";
+import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
+import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
 
 async function ragProcess(c: Context) {
   const req = c.req;

@@ -26,6 +26,8 @@ import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/fu
 import { pull } from "https://esm.sh/langchain/hub";
 import { z } from "https://esm.sh/zod";
 import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema";
+import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
+import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
 
 async function esgComplianceProcess(c: Context) {
   const req = c.req;
@@ -35,7 +37,10 @@ async function esgComplianceProcess(c: Context) {
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
   const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
 
-  const tools = [new SearchEsgTool(), new DuckDuckGoSearch({ maxResults: 3 })];
+  const tools: (StructuredToolInterface | RunnableToolLike)[] = [
+    new SearchEsgTool(),
+    new DuckDuckGoSearch({ maxResults: 3 }),
+  ];
 
   const toolExecutor = new ToolExecutor({
     tools,
