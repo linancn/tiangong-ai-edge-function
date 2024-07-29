@@ -15,6 +15,8 @@ import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
+import { StructuredToolInterface } from "https://esm.sh/v135/@langchain/core/tools.d.ts";
+import { RunnableToolLike } from "https://esm.sh/v135/@langchain/core/runnables.d.ts";
 
 async function ragProcess(c: Context) {
   const req = c.req;
@@ -22,17 +24,18 @@ async function ragProcess(c: Context) {
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
   const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
 
-  const tools = [new SearchEsgTool()];
+  const tools: (StructuredToolInterface | RunnableToolLike)[] = [
+    new SearchEsgTool(),
+  ];
 
   const toolExecutor = new ToolExecutor({
     tools,
   });
 
-
   async function agent(state: Array<BaseMessage>) {
     console.log("---CALL AGENT---");
     const functions = tools.map((tool) => convertToOpenAIFunction(tool));
-    
+
     const model = new ChatOpenAI({
       apiKey: openai_api_key,
       modelName: openai_chat_model,
@@ -77,12 +80,13 @@ async function ragProcess(c: Context) {
     const sendLastMessage = state[state.length - 1];
 
     const docs = sendLastMessage.content;
+    console.log(docs);
 
     const prompt = ChatPromptTemplate.fromTemplate(
       `You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you cannot answer the question from the context, just say that the report does not provide enough evidence. Must provide based on which contexts you generate your answer and their source.
       Question: {question} 
       Context: {context} 
-      Answer:`
+      Answer:`,
     );
 
     const llm = new ChatOpenAI({
@@ -91,11 +95,11 @@ async function ragProcess(c: Context) {
       temperature: 0,
       streaming: true,
     });
-    
+
     const ragChain = prompt.pipe(llm).pipe(new StringOutputParser());
 
     const response = await ragChain.invoke({
-      context: docs,
+      context: JSON.stringify(docs),
       question,
     });
     console.log("---GENERATE COMPLETED---");
@@ -103,9 +107,9 @@ async function ragProcess(c: Context) {
   }
 
   const graph = new MessageGraph()
-  .addNode("agent", agent)
-  .addNode("retrieve", retrieve)
-  .addNode("generate", generate);
+    .addNode("agent", agent)
+    .addNode("retrieve", retrieve)
+    .addNode("generate", generate);
 
   graph.addEdge(START, "agent");
   graph.addEdge("agent", "retrieve");
