@@ -3,7 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
+import "https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts";
 
 import { SupabaseClient, createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -37,10 +37,10 @@ async function getMeta(supabase: SupabaseClient, doi: string[]) {
     .in("doi", doi);
 
   if (error) {
-    console.error(error);
+    // console.error(error);
     return null;
   }
-  console.log(data);
+  // console.log(data);
   return data;
 }
 
@@ -135,7 +135,7 @@ const search = async (
   }
 
   const uniqueIds = new Set(unique_docs.map((doc) => doc.id));
-  console.log(Array.from(uniqueIds));
+  // console.log(Array.from(uniqueIds));
 
   const pgResponse = await getMeta(supabase, Array.from(uniqueIds));
 
