@@ -5,13 +5,12 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 
+import { SupabaseClient, createClient } from "jsr:@supabase/supabase-js@2";
+
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
 import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
 import generateQuery from "../_shared/generate_query.ts";
-import postgres from "npm:/postgres";
-
-const x_password = Deno.env.get("X_PASSWORD") ?? "";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
@@ -20,7 +19,8 @@ const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_sci = Deno.env.get("PINECONE_NAMESPACE_SCI") ?? "";
 
-const postgres_uri = Deno.env.get("POSTGRES_URI") ?? "";
+const supabase_url = Deno.env.get("SP_URL") ?? "";
+const supabase_anon_key = Deno.env.get("SP_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -29,16 +29,19 @@ const openaiClient = new OpenAIEmbeddings({
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
-const sql = postgres(postgres_uri);
 
-async function getMeta(doi: string[]) {
-  const records = await sql`
-    SELECT
-      doi, title, authors
-    FROM journals
-    WHERE doi IN ${sql(doi)}
-  `;
-  return records;
+async function getMeta(supabase: SupabaseClient, doi: string[]) {
+  const { data, error } = await supabase
+    .from("journals")
+    .select("doi, title, authors")
+    .in("doi", doi);
+
+  if (error) {
+    console.error(error);
+    return null;
+  }
+  console.log(data);
+  return data;
 }
 
 function formatTimestampToYearMonth(timestamp: number): string {
@@ -78,14 +81,15 @@ function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
 }
 
 const search = async (
+  supabase: SupabaseClient,
   semantic_query: string,
   topK: number,
   filter?: FilterType,
 ) => {
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
-  console.log(filter);
-  console.log(filterToPCQuery(filter));
+  // console.log(filter);
+  // console.log(filterToPCQuery(filter));
 
   interface QueryOptions {
     vector: number[];
@@ -131,12 +135,12 @@ const search = async (
   }
 
   const uniqueIds = new Set(unique_docs.map((doc) => doc.id));
-  // console.log(unique_doc_id_set);
+  console.log(Array.from(uniqueIds));
 
-  const pgResponse = await getMeta(Array.from(uniqueIds));
+  const pgResponse = await getMeta(supabase, Array.from(uniqueIds));
 
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse.find((r) => r.doi === doc.id);
+    const record = pgResponse.find((r: { doi: string; }) => r.doi === doc.id);
 
     if (record) {
       const title = record.title;
@@ -160,9 +164,16 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const password = req.headers.get("x-password");
-  if (password !== x_password) {
+  const supabase = createClient(supabase_url, supabase_anon_key);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: req.headers.get("email"),
+    password: req.headers.get("password"),
+  });
+  if (error) {
     return new Response("Unauthorized", { status: 401 });
+  }
+  if (data.user.role !== "authenticated") {
+    return new Response("You are not an authenticated user.", { status: 401 });
   }
 
   const { query, filter, topK } = await req.json();
@@ -171,6 +182,7 @@ Deno.serve(async (req) => {
   const res = await generateQuery(query);
 
   const result = await search(
+    supabase,
     res.semantic_query,
     topK,
     filter,
