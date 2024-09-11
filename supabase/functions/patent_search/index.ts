@@ -8,9 +8,8 @@ import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
 import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import generateQuery from "../_shared/generate_query.ts";
-
-const x_password = Deno.env.get("X_PASSWORD") ?? "";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
@@ -19,7 +18,8 @@ const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_patent = Deno.env.get("PINECONE_NAMESPACE_PATENT") ?? "";
 
-
+const supabase_url = Deno.env.get("SP_URL") ?? "";
+const supabase_anon_key = Deno.env.get("SP_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -130,9 +130,16 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const password = req.headers.get("x-password");
-  if (password !== x_password) {
+  const supabase = createClient(supabase_url, supabase_anon_key);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: req.headers.get("email"),
+    password: req.headers.get("password"),
+  });
+  if (error) {
     return new Response("Unauthorized", { status: 401 });
+  }
+  if (data.user.role !== "authenticated") {
+    return new Response("You are not an authenticated user.", { status: 401 });
   }
 
   const { query, filter, topK } = await req.json();
