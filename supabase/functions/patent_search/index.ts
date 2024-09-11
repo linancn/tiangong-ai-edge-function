@@ -18,8 +18,8 @@ const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_patent = Deno.env.get("PINECONE_NAMESPACE_PATENT") ?? "";
 
-const supabase_url = Deno.env.get("SP_URL") ?? "";
-const supabase_anon_key = Deno.env.get("SP_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
+const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,

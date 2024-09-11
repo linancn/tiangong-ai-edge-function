@@ -26,8 +26,8 @@ const opensearch_region = Deno.env.get("OPENSEARCH_REGION") ?? "";
 const opensearch_domain = Deno.env.get("OPENSEARCH_DOMAIN") ?? "";
 const opensearch_index_name = Deno.env.get("OPENSEARCH_EDU_INDEX_NAME") ?? "";
 
-const supabase_url = Deno.env.get("SP_URL") ?? "";
-const supabase_anon_key = Deno.env.get("SP_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
+const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,

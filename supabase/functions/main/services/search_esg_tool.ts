@@ -42,7 +42,7 @@ class SearchEsgTool extends DynamicStructuredTool {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SP_ANON_KEY")}`,
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
               "x-password": Deno.env.get("X_PASSWORD") ?? "",
               "x-region": "us-east-1",
             },

@@ -1,6 +1,7 @@
 .env
 supabase/.temp
 supabase/.env.local
+supabase/.env.production
 node_modules
 package-lock.json
 deno.lock
