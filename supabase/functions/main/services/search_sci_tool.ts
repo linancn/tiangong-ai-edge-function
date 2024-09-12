@@ -14,24 +14,28 @@ class SearchSciTool extends DynamicStructuredTool {
       description:
         "Call this tool to search the environmental vector database for specialized information.",
       schema: z.object({
-        query: z.string().describe("Requirements or questions from the user."),
+        query: z.string().min(1).describe(
+          "Requirements or questions from the user.",
+        ),
         journal: z.array(z.string()).default([]).describe(
           "journal name to filter the search.",
         ),
         topK: z.number().default(5).describe("Number of results to return."),
+        email: z.string().email().describe("Email for authentication."),
+        password: z.string().min(1).describe("Password for authentication."),
       }),
       func: async (
-        { query, journal, topK }: {
+        { query, journal, topK, email, password }: {
           query: string;
           journal: string[];
           topK: number;
+          email: string;
+          password: string;
         },
       ) => {
-        if (!query) {
-          throw new Error("Query is empty.");
-        }
-
-        const filter: FilterType = journal.length > 0 ? { journal: journal } : {};
+        const filter: FilterType = journal.length > 0
+          ? { journal: journal }
+          : {};
         const isFilterEmpty = Object.keys(filter).length === 0;
         const requestBody = JSON.stringify(
           isFilterEmpty ? { query, topK } : { query, topK, filter },
@@ -45,8 +49,12 @@ class SearchSciTool extends DynamicStructuredTool {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-              "x-password": Deno.env.get("X_PASSWORD") ?? "",
+              "Authorization": `Bearer ${
+                Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
+                  Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+              }`,
+              "email": email,
+              "password": password,
               "x-region": "us-east-1",
             },
             body: requestBody,
