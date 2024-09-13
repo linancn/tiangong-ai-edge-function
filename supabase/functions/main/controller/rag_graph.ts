@@ -3,132 +3,106 @@
 import {
   AIMessage,
   BaseMessage,
-  FunctionMessage,
   HumanMessage,
 } from "https://esm.sh/@langchain/core/messages";
-import { END, MessageGraph, START } from "npm:/@langchain/langgraph";
 
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
-import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
-import { Context } from "jsr:@hono/hono";
-import SearchEsgTool from "../services/search_esg_tool.ts";
-import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
-import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
-import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
-import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { Annotation, MemorySaver, StateGraph } from "npm:/@langchain/langgraph";
+
 import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
+import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { Context } from "jsr:@hono/hono";
+import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
+import supabaseAuth from "../../_shared/supabase_auth.ts";
+import SearchEsgTool from "../services/search_esg_tool.ts";
+
+const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
+  Deno.env.get("SUPABASE_URL") ?? "";
+const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 async function ragProcess(c: Context) {
   const req = c.req;
+  const email = req.header("email") ?? "";
+  const password = req.header("password") ?? "";
+
+  const supabase = createClient(supabase_url, supabase_anon_key);
+  const authResponse = await supabaseAuth(supabase, email, password);
+  if (authResponse.status !== 200) {
+    return authResponse;
+  }
+
   const { query } = await req.json();
+
   const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
   const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
+
+  const StateAnnotation = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+      reducer: (x, y) => x.concat(y),
+    }),
+  });
 
   const tools: (StructuredToolInterface | RunnableToolLike)[] = [
     new SearchEsgTool(),
   ];
 
-  const toolExecutor = new ToolExecutor({
-    tools,
-  });
+  const model = new ChatOpenAI({
+    apiKey: openai_api_key,
+    modelName: openai_chat_model,
+    temperature: 0,
+    streaming: true,
+  }).bindTools(tools);
 
-  async function agent(state: Array<BaseMessage>) {
-    console.log("---CALL AGENT---");
-    const functions = tools.map((tool) => convertToOpenAIFunction(tool));
+  const toolNode = new ToolNode(tools);
 
-    const model = new ChatOpenAI({
-      apiKey: openai_api_key,
-      modelName: openai_chat_model,
-      temperature: 0,
-      streaming: true,
-    }).bind({
-      functions,
-    });
+  // Define the function that determines whether to continue or not
+  // We can extract the state typing via `StateAnnotation.State`
+  function shouldContinue(state: typeof StateAnnotation.State) {
+    const messages = state.messages;
+    const lastMessage = messages[messages.length - 1] as AIMessage;
 
-    const response = await model.invoke(state);
-    console.log("---INVOKE TOOL---");
-    // We can return just the response because it will be appended to the state.
-    return [response];
-  }
-
-  async function retrieve(state: Array<BaseMessage>) {
-    console.log("---EXECUTE RETRIEVAL---");
-    // Based on the continue condition
-    // we know the last message involves a function call.
-    const lastMessage = state[state.length - 1];
-    const action = {
-      tool: lastMessage.additional_kwargs.function_call?.name ?? "",
-      toolInput: JSON.parse(
-        lastMessage.additional_kwargs.function_call?.arguments ?? "{}",
-      ),
-    };
-    // We call the tool_executor and get back a response.
-    const response = await toolExecutor._execute(action);
-    // We use the response to create a FunctionMessage.
-    const functionMessage = new FunctionMessage({
-      name: action.tool,
-      content: response,
-    });
-    console.log("Response:", response, "---END RETRIEVE---");
-    return [functionMessage];
-  }
-
-  async function generate(state: Array<BaseMessage>) {
-    console.log("---GENERATE---");
-    console.log(state);
-    const question = state[0].content as string;
-    const sendLastMessage = state[state.length - 1];
-
-    const docs = sendLastMessage.content;
-    console.log(docs);
-
-    const prompt = ChatPromptTemplate.fromTemplate(
-      `You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you cannot answer the question from the context, just say that the report does not provide enough evidence. Must provide based on which contexts you generate your answer and their source.
-      Question: {question} 
-      Context: {context} 
-      Answer:`,
-    );
-
-    const llm = new ChatOpenAI({
-      apiKey: openai_api_key,
-      modelName: openai_chat_model,
-      temperature: 0,
-      streaming: true,
-    });
-
-    const ragChain = prompt.pipe(llm).pipe(new StringOutputParser());
-
-    const response = await ragChain.invoke({
-      context: JSON.stringify(docs),
-      question,
-    });
-    console.log("---GENERATE COMPLETED---");
-    return [new AIMessage(response)];
-  }
-
-  const graph = new MessageGraph()
-    .addNode("agent", agent)
-    .addNode("retrieve", retrieve)
-    .addNode("generate", generate);
-
-  graph.addEdge(START, "agent");
-  graph.addEdge("agent", "retrieve");
-  graph.addEdge("retrieve", "generate");
-  graph.addEdge("generate", END);
-
-  const runnable = graph.compile();
-  const inputs = [new HumanMessage(query)];
-
-  let finalState;
-  for await (const output of await runnable.stream(inputs)) {
-    for (const [key, value] of Object.entries(output)) {
-      console.log(`Output from node: '${key}'`);
-      finalState = value;
+    // If the LLM makes a tool call, then we route to the "tools" node
+    if (lastMessage.tool_calls?.length) {
+      return "tools";
     }
-    console.log("\n---\n");
+    // Otherwise, we stop (reply to the user)
+    return "__end__";
   }
 
-  console.log("---GRAPH COMPLETED---");
+  // Define the function that calls the model
+  async function callModel(state: typeof StateAnnotation.State) {
+    const messages = state.messages;
+    const response = await model.invoke(messages);
+
+    // We return a list, because this will get added to the existing list
+    return { messages: [response] };
+  }
+
+  // Define a new graph
+  const workflow = new StateGraph(StateAnnotation)
+    .addNode("agent", callModel)
+    .addNode("tools", toolNode)
+    .addEdge("__start__", "agent")
+    .addConditionalEdges("agent", shouldContinue)
+    .addEdge("tools", "agent");
+
+  // Initialize memory to persist state between graph runs
+  const checkpointer = new MemorySaver();
+
+  // Finally, we compile it!
+  // This compiles it into a LangChain Runnable.
+  // Note that we're (optionally) passing the memory when compiling the graph
+  const app = workflow.compile({ checkpointer });
+
+  // Use the Runnable
+  const finalState = await app.invoke(
+    { messages: [new HumanMessage(query)] },
+    { configurable: { thread_id: "42" } },
+  );
+
+  console.log(finalState.messages[finalState.messages.length - 1].content);
 
   return new Response(
     JSON.stringify(finalState, null, 2),

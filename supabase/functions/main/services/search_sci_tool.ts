@@ -21,11 +21,9 @@ class SearchSciTool extends DynamicStructuredTool {
           "journal name to filter the search.",
         ),
         topK: z.number().default(5).describe("Number of results to return."),
-        email: z.string().email().describe("Email for authentication."),
-        password: z.string().min(1).describe("Password for authentication."),
       }),
       func: async (
-        { query, journal, topK, email, password }: {
+        { query, journal, topK }: {
           query: string;
           journal: string[];
           topK: number;
@@ -53,8 +51,8 @@ class SearchSciTool extends DynamicStructuredTool {
                 Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
                   Deno.env.get("SUPABASE_ANON_KEY") ?? ""
               }`,
-              "email": email,
-              "password": password,
+              "email": Deno.env.get("EMAIL") ?? "",
+              "password": Deno.env.get("PASSWORD") ?? "",
               "x-region": "us-east-1",
             },
             body: requestBody,

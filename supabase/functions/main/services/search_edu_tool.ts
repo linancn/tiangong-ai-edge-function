@@ -14,7 +14,9 @@ class SearchEduTool extends DynamicStructuredTool {
       description:
         "Call this tool to search the environmental science educational materials database for information.",
       schema: z.object({
-        query: z.string().describe("Requirements or questions from the user."),
+        query: z.string().min(1).describe(
+          "Requirements or questions from the user.",
+        ),
         course: z.array(z.string()).default([]).describe(
           "course name to filter the search.",
         ),
@@ -27,10 +29,6 @@ class SearchEduTool extends DynamicStructuredTool {
           topK: number;
         },
       ) => {
-        if (!query) {
-          throw new Error("Query is empty.");
-        }
-
         const filter: FilterType = course.length > 0 ? { course: course } : {};
         const isFilterEmpty = Object.keys(filter).length === 0;
         const requestBody = JSON.stringify(
@@ -45,8 +43,12 @@ class SearchEduTool extends DynamicStructuredTool {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-              "x-password": Deno.env.get("X_PASSWORD") ?? "",
+              "Authorization": `Bearer ${
+                Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
+                  Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+              }`,
+              "email": Deno.env.get("EMAIL") ?? "",
+              "password": Deno.env.get("PASSWORD") ?? "",
               "x-region": "us-east-1",
             },
             body: requestBody,

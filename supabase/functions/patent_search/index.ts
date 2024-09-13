@@ -7,19 +7,23 @@ import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
 import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
-import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 import generateQuery from "../_shared/generate_query.ts";
+import supabaseAuth from "../_shared/supabase_auth.ts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
 
 const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
-const pinecone_namespace_patent = Deno.env.get("PINECONE_NAMESPACE_PATENT") ?? "";
+const pinecone_namespace_patent = Deno.env.get("PINECONE_NAMESPACE_PATENT") ??
+  "";
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
+  Deno.env.get("SUPABASE_URL") ?? "";
+const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -29,10 +33,8 @@ const openaiClient = new OpenAIEmbeddings({
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
-
-
 type FilterType =
-  | { country?: string[]; publication_date?: string}
+  | { country?: string[]; publication_date?: string }
   | Record<string | number | symbol, never>;
 type CountryCondition = { $or: { country: string }[] };
 type DateCondition = { publication_date: string };
@@ -51,14 +53,12 @@ function filterToPCQuery(filter?: FilterType): PCFilter | undefined {
     const CountryConditions = filter.country.map((c) => ({ country: c }));
     conditions.push({ $or: CountryConditions });
   }
-  
+
   if (filter.publication_date) {
     conditions.push({ publication_date: filter.publication_date });
   }
   return conditions.length > 0 ? { $and: conditions } : undefined;
 }
-
-
 
 const search = async (
   semantic_query: string,
@@ -87,12 +87,12 @@ const search = async (
     queryOptions.filter = filterToPCQuery(filter);
   }
 
-  const pineconeResponse = await index.namespace(pinecone_namespace_patent).query(
-    queryOptions,
-  );
+  const pineconeResponse = await index.namespace(pinecone_namespace_patent)
+    .query(
+      queryOptions,
+    );
 
   // console.log(pineconeResponse);
-
 
   const unique_docs = [];
 
@@ -106,8 +106,8 @@ const search = async (
         title: doc.metadata.title,
         url: doc.metadata.url,
       });
-      }
     }
+  }
 
   if (unique_docs.length > 0) {
     const docList = unique_docs.map((doc) => {
@@ -131,15 +131,13 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(supabase_url, supabase_anon_key);
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: req.headers.get("email"),
-    password: req.headers.get("password"),
-  });
-  if (error) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-  if (data.user.role !== "authenticated") {
-    return new Response("You are not an authenticated user.", { status: 401 });
+  const authResponse = await supabaseAuth(
+    supabase,
+    req.headers.get("email") ?? "",
+    req.headers.get("password") ?? "",
+  );
+  if (authResponse.status !== 200) {
+    return authResponse;
   }
 
   const { query, filter, topK } = await req.json();
@@ -166,8 +164,8 @@ Deno.serve(async (req) => {
   2. Make an HTTP request:
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
-     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --header 'x-password: xxx' \
+    --header 'email: xxx' \
+    --header 'password: xxx' \
     --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"], "publication_date": {"$gte": 19900101}}, "topK": 3}'
 */

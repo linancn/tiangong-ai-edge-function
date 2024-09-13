@@ -5,15 +5,16 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts";
 
-import { SupabaseClient, createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
-import { AwsSigv4Signer } from "npm:/@opensearch-project/opensearch/aws";
-import { Client } from "npm:/@opensearch-project/opensearch";
 import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
 import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
-import { corsHeaders } from "../_shared/cors.ts";
 import { defaultProvider } from "npm:/@aws-sdk/credential-provider-node";
+import { Client } from "npm:/@opensearch-project/opensearch";
+import { AwsSigv4Signer } from "npm:/@opensearch-project/opensearch/aws";
+import { corsHeaders } from "../_shared/cors.ts";
 import generateQuery from "../_shared/generate_query.ts";
+import supabaseAuth from "../_shared/supabase_auth.ts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
@@ -26,8 +27,10 @@ const opensearch_region = Deno.env.get("OPENSEARCH_REGION") ?? "";
 const opensearch_domain = Deno.env.get("OPENSEARCH_DOMAIN") ?? "";
 const opensearch_index_name = Deno.env.get("OPENSEARCH_EDU_INDEX_NAME") ?? "";
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
+  Deno.env.get("SUPABASE_URL") ?? "";
+const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -197,7 +200,7 @@ const search = async (
   const pgResponse = await getEduMeta(supabase, Array.from(unique_doc_id_set));
 
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse.find((r: { id: string; }) => r.id === doc.id);
+    const record = pgResponse.find((r: { id: string }) => r.id === doc.id);
 
     if (record) {
       const name = record.name;
@@ -221,15 +224,13 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(supabase_url, supabase_anon_key);
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: req.headers.get("email"),
-    password: req.headers.get("password"),
-  });
-  if (error) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-  if (data.user.role !== "authenticated") {
-    return new Response("You are not an authenticated user.", { status: 401 });
+  const authResponse = await supabaseAuth(
+    supabase,
+    req.headers.get("email") ?? "",
+    req.headers.get("password") ?? "",
+  );
+  if (authResponse.status !== 200) {
+    return authResponse;
   }
 
   const { query, filter, topK } = await req.json();
@@ -258,13 +259,15 @@ Deno.serve(async (req) => {
   2. Make an HTTP request:
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
+    --header 'email: xxx' \
+    --header 'password: xxx' \
+    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "topK": 3}'
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --header 'x-password: XXX' \
+    --header 'email: xxx' \
+    --header 'password: xxx' \
     --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
 */

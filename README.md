@@ -50,17 +50,19 @@ service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 npx supabase functions serve --env-file ./supabase/.env.local
 
 curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"name":"Functions"}'
+
+curl -i --location --request GET 'http://127.0.0.1:64321/functions/v1/main/health'
 ```
+
 
 ## Docker Deployment on AWS ECS Fargate
 
 ```bash
-docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6 .
+docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.3 .
 
-docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.54.6
+docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.3
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
