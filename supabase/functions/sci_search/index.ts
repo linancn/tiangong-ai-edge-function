@@ -143,7 +143,7 @@ const search = async (
   const pgResponse = await getMeta(supabase, Array.from(uniqueIds));
 
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse.find((r: { doi: string }) => r.doi === doc.id);
+    const record = pgResponse?.find((r: { doi: string }) => r.doi === doc.id);
 
     if (record) {
       const title = record.title;

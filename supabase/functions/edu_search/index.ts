@@ -200,7 +200,7 @@ const search = async (
   const pgResponse = await getEduMeta(supabase, Array.from(unique_doc_id_set));
 
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse.find((r: { id: string }) => r.id === doc.id);
+    const record = pgResponse?.find((r: { id: string }) => r.id === doc.id);
 
     if (record) {
       const name = record.name;

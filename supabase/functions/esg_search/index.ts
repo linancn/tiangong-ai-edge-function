@@ -195,7 +195,7 @@ const search = async (
   const pgResponse = await getEsgMeta(supabase, Array.from(unique_doc_id_set));
 
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse.find((r) => r.id === doc.id);
+    const record = pgResponse?.find((r) => r.id === doc.id);
 
     if (record) {
       const report_title = record.report_title;
