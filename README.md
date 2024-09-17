@@ -60,9 +60,9 @@ curl -i --location --request GET 'http://127.0.0.1:64321/functions/v1/main/healt
 ## Docker Deployment on AWS ECS Fargate
 
 ```bash
-docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.3 .
+docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.2 .
 
-docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.3
+docker run -p 9000:9000 --env-file supabase/.env.local 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v1.58.2
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
