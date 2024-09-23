@@ -20,6 +20,14 @@ npx supabase start
 
 ```
 
+## Clear Deno cache
+
+```bash
+deno info
+rm -rf ~/Library/Caches/deno # for macOS
+```
+
+
 Rename the `.env.example` to `.env.local` and fill in the the values before the `npx supabase start` command.
 
 ## Local Development
