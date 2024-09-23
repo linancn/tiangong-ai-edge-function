@@ -5,10 +5,10 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts";
 
-import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { SupabaseClient, createClient } from "jsr:@supabase/supabase-js@2";
 
-import { OpenAIEmbeddings } from "https://esm.sh/@langchain/openai";
-import { Pinecone } from "https://esm.sh/@pinecone-database/pinecone";
+import { OpenAIEmbeddings } from "npm:/@langchain/openai";
+import { Pinecone } from "npm:/@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
 import generateQuery from "../_shared/generate_query.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";

@@ -1,8 +1,8 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+/// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
-import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
+import { ChatOpenAI } from "npm:/@langchain/openai";
+import { ChatPromptTemplate } from "npm:/@langchain/core/prompts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
@@ -57,6 +57,13 @@ const querySchema = {
   ],
 };
 
+interface QueryResponse {
+  semantic_query: string;
+  fulltext_query_eng: string[];
+  fulltext_query_chi_sim: string[];
+  fulltext_query_chi_tra: string[];
+}
+
 const modelWithStructuredOutput = model.withStructuredOutput(querySchema);
 
 const prompt = ChatPromptTemplate.fromMessages([
@@ -74,7 +81,7 @@ async function generateQuery(
 ) {
   const response = await chain.invoke({ input: query });
   // console.log(response);
-  return response;
+  return response as QueryResponse;
 }
 
 export default generateQuery;
