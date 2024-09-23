@@ -5,7 +5,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 /// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-import "https://esm.sh/duck-duck-scrape";
+import "npm:/duck-duck-scrape";
 
 import {
   AIMessage,
@@ -19,15 +19,15 @@ import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
 import { ChatPromptTemplate } from "https://esm.sh/@langchain/core/prompts";
 import { Context } from "jsr:@hono/hono";
 import { DuckDuckGoSearch } from "https://esm.sh/@langchain/community/tools/duckduckgo_search";
+import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
 import SearchEsgTool from "../services/search_esg_tool.ts";
 import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
+import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
 import { ToolExecutor } from "npm:/@langchain/langgraph/prebuilt";
 import { convertToOpenAIFunction } from "https://esm.sh/@langchain/core/utils/function_calling";
 import { pull } from "https://esm.sh/langchain/hub";
 import { z } from "https://esm.sh/zod";
 import { zodToJsonSchema } from "https://esm.sh/zod-to-json-schema";
-import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
-import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
 
 async function esgComplianceProcess(c: Context) {
   const req = c.req;

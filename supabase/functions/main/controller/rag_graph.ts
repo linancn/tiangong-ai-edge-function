@@ -4,18 +4,18 @@ import {
   AIMessage,
   BaseMessage,
   HumanMessage,
-} from "https://esm.sh/@langchain/core/messages";
-
-import { createClient } from "jsr:@supabase/supabase-js@2";
+} from "npm:/@langchain/core/messages";
 import { Annotation, MemorySaver, StateGraph } from "npm:/@langchain/langgraph";
 
-import { RunnableToolLike } from "https://esm.sh/@langchain/core/runnables";
-import { StructuredToolInterface } from "https://esm.sh/@langchain/core/tools";
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { ChatOpenAI } from "npm:/@langchain/openai";
 import { Context } from "jsr:@hono/hono";
-import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
-import supabaseAuth from "../../_shared/supabase_auth.ts";
+import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
+import { RunnableToolLike } from "npm:/@langchain/core/runnables";
 import SearchEsgTool from "../services/search_esg_tool.ts";
+import { StructuredToolInterface } from "npm:/@langchain/core/tools";
+import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import supabaseAuth from "../../_shared/supabase_auth.ts";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
   Deno.env.get("SUPABASE_URL") ?? "";
@@ -46,6 +46,7 @@ async function ragProcess(c: Context) {
 
   const tools: (StructuredToolInterface | RunnableToolLike)[] = [
     new SearchEsgTool(),
+    new DuckDuckGoSearch({ maxResults: 3 }),
   ];
 
   const model = new ChatOpenAI({

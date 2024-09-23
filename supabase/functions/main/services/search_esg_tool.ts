@@ -1,7 +1,7 @@
 /// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
 
-import { DynamicStructuredTool } from "https://esm.sh/@langchain/core/tools";
-import { z } from "https://esm.sh/zod";
+import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
+import { z } from "npm:/zod";
 
 type FilterType =
   | { rec_id: { "$in": string[] } }
