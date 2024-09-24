@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, maxResults } = await req.json();
+  const { query, maxResults = 5 } = await req.json();
   // console.log(query, maxResults);
 
   const result = await search(

@@ -13,7 +13,7 @@ class SearchInternetTool extends DynamicStructuredTool {
         query: z.string().min(1).describe(
           "Requirements or questions from the user.",
         ),
-        maxResults: z.number().default(3).describe(
+        maxResults: z.number().default(5).describe(
           "Number of results to return.",
         ),
       }),
