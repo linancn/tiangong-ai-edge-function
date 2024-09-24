@@ -17,13 +17,29 @@ const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
 
 const search = async (
   query: string,
-  topK: number = 0,
+  maxResults: number = 3,
 ) => {
-  const searchResults = await DDG.search(query, {
-    safeSearch: DDG.SafeSearchType.STRICT,
-    offset: topK,
-  });
-  return searchResults;
+  try {
+    const searchResults = await DDG.search(query, {
+      safeSearch: DDG.SafeSearchType.STRICT,
+    });
+
+    if (Array.isArray(searchResults.results)) {
+      const results = searchResults.results.slice(0, maxResults);
+      const markdownList = results.map((item) => {
+        const content = item.description;
+        const source =
+          `![icon](${item.icon})${item.title} [(${item.hostname})](${item.url})`;
+        return { content, source };
+      });
+      return markdownList;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Search error:", error);
+    return [];
+  }
 };
 
 Deno.serve(async (req) => {
@@ -41,14 +57,14 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, topK } = await req.json();
-  // console.log(query, topK);
+  const { query, maxResults } = await req.json();
+  // console.log(query, maxResults);
 
   const result = await search(
     query,
-    topK,
+    maxResults,
   );
-  console.log(result);
+  // console.log(result);
 
   return new Response(
     JSON.stringify(result),
@@ -65,5 +81,5 @@ Deno.serve(async (req) => {
     --header 'Content-Type: application/json' \
     --header 'email: xxx' \
     --header 'password: xxx' \
-    --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"], "publication_date": {"$gte": 19900101}}, "topK": 3}'
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
 */
