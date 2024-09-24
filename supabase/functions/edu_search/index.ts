@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, filter, topK } = await req.json();
+  const { query, filter, topK = 3 } = await req.json();
   // console.log(query, filter);
 
   const res = await generateQuery(query);
