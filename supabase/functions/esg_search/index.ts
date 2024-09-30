@@ -1,18 +1,14 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 // Setup type definitions for built-in Supabase Runtime APIs
-import "https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts";
+import "@supabase/functions-js/edge-runtime.d.ts";
 
-import { SupabaseClient, createClient } from "jsr:@supabase/supabase-js@2";
+import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
 
-import { AwsSigv4Signer } from "npm:/@opensearch-project/opensearch/aws";
-import { Client } from "npm:/@opensearch-project/opensearch";
-import { OpenAIEmbeddings } from "npm:/@langchain/openai";
-import { Pinecone } from "npm:/@pinecone-database/pinecone";
+import { AwsSigv4Signer } from "@opensearch-project/opensearch/aws";
+import { Client } from "@opensearch-project/opensearch";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { Pinecone } from "@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
-import { defaultProvider } from "npm:/@aws-sdk/credential-provider-node";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import generateQuery from "../_shared/generate_query.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";
 

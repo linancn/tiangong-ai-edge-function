@@ -1,7 +1,8 @@
-/// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
+// Setup type definitions for built-in Supabase Runtime APIs
+import "@supabase/functions-js/edge-runtime.d.ts";
 
-import { DynamicStructuredTool } from "npm:/@langchain/core/tools";
-import { z } from "npm:/zod";
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import { z } from "zod";
 
 type FilterType =
   | { rec_id: { "$in": string[] } }

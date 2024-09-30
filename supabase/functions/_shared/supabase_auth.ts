@@ -1,4 +1,7 @@
-import { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+// Setup type definitions for built-in Supabase Runtime APIs
+import "@supabase/functions-js/edge-runtime.d.ts";
+
+import { SupabaseClient } from "@supabase/supabase-js@2";
 
 async function supabaseAuth(
     supabase: SupabaseClient,

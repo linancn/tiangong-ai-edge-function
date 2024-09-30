@@ -25,6 +25,7 @@ npx supabase start
 ```bash
 deno info
 rm -rf ~/Library/Caches/deno # for macOS
+rm -rf ~/.cache/deno # for Linux
 ```
 
 

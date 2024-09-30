@@ -1,4 +1,4 @@
-import { Hono } from "jsr:@hono/hono";
+import { Hono } from "@hono/hono";
 import ragProcess from "../controller/rag_graph.ts";
 
 const ragRouter = new Hono();

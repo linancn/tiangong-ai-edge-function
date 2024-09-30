@@ -1,14 +1,10 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 // Setup type definitions for built-in Supabase Runtime APIs
-import "https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts";
+import "@supabase/functions-js/edge-runtime.d.ts";
 
-import { OpenAIEmbeddings } from "npm:/@langchain/openai";
-import { Pinecone } from "npm:/@pinecone-database/pinecone";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { Pinecone } from "@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js@2";
 import generateQuery from "../_shared/generate_query.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";
 

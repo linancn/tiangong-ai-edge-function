@@ -1,8 +1,8 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
+import "@supabase/functions-js/edge-runtime.d.ts";
 
-import { ChatOpenAI } from "npm:/@langchain/openai";
-import { ChatPromptTemplate } from "npm:/@langchain/core/prompts";
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
@@ -18,7 +18,8 @@ const querySchema = {
   properties: {
     semantic_query: {
       title: "SemanticQuery",
-      description: "A query for semantic retrieval in query's original language.",
+      description:
+        "A query for semantic retrieval in query's original language.",
       type: "string",
     },
     fulltext_query_eng: {

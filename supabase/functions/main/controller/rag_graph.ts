@@ -1,20 +1,17 @@
-/// <reference types="https://esm.sh/v135/@supabase/functions-js/src/edge-runtime.d.ts" />
+// Setup type definitions for built-in Supabase Runtime APIs
+import "@supabase/functions-js/edge-runtime.d.ts";
 
-import {
-  AIMessage,
-  BaseMessage,
-  HumanMessage,
-} from "npm:/@langchain/core/messages";
-import { Annotation, MemorySaver, StateGraph } from "npm:/@langchain/langgraph";
+import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { Annotation, MemorySaver, StateGraph } from "@langchain/langgraph";
 
-import { ChatOpenAI } from "npm:/@langchain/openai";
-import { Context } from "jsr:@hono/hono";
-import { DuckDuckGoSearch } from "npm:/@langchain/community/tools/duckduckgo_search";
-import { RunnableToolLike } from "npm:/@langchain/core/runnables";
+import { ChatOpenAI } from "@langchain/openai";
+import { Context } from "@hono/hono";
+import { RunnableToolLike } from "@langchain/core/runnables";
 import SearchEsgTool from "../services/search_esg_tool.ts";
-import { StructuredToolInterface } from "npm:/@langchain/core/tools";
-import { ToolNode } from "npm:/@langchain/langgraph/prebuilt";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import SearchInternetTool from "../services/search_internet_tool.ts";
+import { StructuredToolInterface } from "@langchain/core/tools";
+import { ToolNode } from "@langchain/langgraph/prebuilt";
+import { createClient } from "@supabase/supabase-js@2";
 import supabaseAuth from "../../_shared/supabase_auth.ts";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
@@ -46,7 +43,7 @@ async function ragProcess(c: Context) {
 
   const tools: (StructuredToolInterface | RunnableToolLike)[] = [
     new SearchEsgTool(),
-    new DuckDuckGoSearch({ maxResults: 3 }),
+    new SearchInternetTool(),
   ];
 
   const model = new ChatOpenAI({

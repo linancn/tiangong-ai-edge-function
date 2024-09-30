@@ -1,4 +1,4 @@
-import { Hono } from "jsr:@hono/hono";
+import { Hono } from "@hono/hono";
 
 const healthRouter = new Hono();
 
