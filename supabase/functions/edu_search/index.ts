@@ -3,12 +3,10 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 
 import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
 
-import { AwsSigv4Signer } from "@opensearch-project/opensearch/aws";
 import { Client } from "@opensearch-project/opensearch";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import generateQuery from "../_shared/generate_query.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";
 
@@ -19,8 +17,7 @@ const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_edu = Deno.env.get("PINECONE_NAMESPACE_EDU") ?? "";
 
-const opensearch_region = Deno.env.get("OPENSEARCH_REGION") ?? "";
-const opensearch_domain = Deno.env.get("OPENSEARCH_DOMAIN") ?? "";
+const opensearch_node = Deno.env.get("OPENSEARCH_NODE") ?? "";
 const opensearch_index_name = Deno.env.get("OPENSEARCH_EDU_INDEX_NAME") ?? "";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
@@ -37,17 +34,7 @@ const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
 const opensearchClient = new Client({
-  ...AwsSigv4Signer({
-    region: opensearch_region,
-    service: "aoss",
-
-    getCredentials: () => {
-      // Any other method to acquire a new Credentials object can be used.
-      const credentialsProvider = defaultProvider();
-      return credentialsProvider();
-    },
-  }),
-  node: opensearch_domain,
+  node: opensearch_node,
 });
 
 async function getEduMeta(supabase: SupabaseClient, id: string[]) {
