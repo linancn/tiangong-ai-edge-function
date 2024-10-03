@@ -1,7 +1,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js/edge-runtime.d.ts";
 
-import { createClient, SupabaseClient } from "@supabase/supabase-js@2";
+import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
 
 import { Client } from "@opensearch-project/opensearch";
 import { OpenAIEmbeddings } from "@langchain/openai";
@@ -39,10 +39,13 @@ const opensearchClient = new Client({
   node: opensearch_node,
 });
 
-async function getStandardsMeta(supabase: SupabaseClient, full_text: string) {
+async function getStandardsMeta(
+  supabase: SupabaseClient,
+  meta_contains: string,
+) {
   // console.log(full_text);
   const { data, error } = await supabase.rpc("standards_full_text", {
-    full_text,
+    meta_contains,
   });
 
   if (error) {
@@ -61,32 +64,20 @@ function formatTimestampToDate(timestamp: number): string {
   return `${year}-${month}-${day}`;
 }
 
-// type FilterType =
-//   | { standard_number: string[], rec_id?: string[] }
-//   | Record<string | number | symbol, never>;
+type FilterType = { [field: string]: string[] };
 
-// type PCFilter = {
-//   $or: { standard_number: string }[];
-// };
-
-// type FilterType = {
-//   rec_id?: string[];
-//   standard_number?: string[];
-// };
-
-type FiltersType = {
-  terms: {
-    [field: string]: string[];
-  };
+type FiltersItem = {
+  terms: { [field: string]: string[] };
 };
+
+type FiltersType = FiltersItem[];
 
 type PCFilter = {
-  rec_id?: { $in: string[] };
-  standard_number?: { $in: string[] };
+  $and: Array<{ [field: string]: { $in: string[] } }>;
 };
 
-function filterToPCQuery(input: any[]): any {
-  const andConditions = input.map((item) => {
+function filterToPCQuery(filters: FiltersType): PCFilter {
+  const andConditions = filters.map((item) => {
     if (item.terms) {
       const field = Object.keys(item.terms)[0];
       const values = item.terms[field];
@@ -103,35 +94,21 @@ function filterToPCQuery(input: any[]): any {
   };
 }
 
-// function filterToPCQuery(filter: FilterType): PCFilter {
-//   const pcFilter: PCFilter = {};
-
-//   if (filter.rec_id && filter.rec_id.length > 0) {
-//     pcFilter.rec_id = { $in: filter.rec_id };
-//   }
-
-//   if (filter.standard_number && filter.standard_number.length > 0) {
-//     pcFilter.standard_number = { $in: filter.standard_number };
-//   }
-
-//   return pcFilter;
-// }
-
 const search = async (
   supabase: SupabaseClient,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
-  full_text?: string,
-  filter?: any,
+  meta_contains?: string,
+  filter?: FilterType,
 ) => {
-  // console.log(query, topK, filter);
+  // console.log(topK, filter, meta_contains);
 
   let pgResponse = null;
-  if (full_text) {
+  if (meta_contains) {
     pgResponse = await getStandardsMeta(
       supabase,
-      full_text,
+      meta_contains,
     );
   }
 
@@ -195,14 +172,13 @@ const search = async (
     includeMetadata: true,
   };
 
+  // console.log(filters);
+
   if (filters) {
     queryOptions.filter = filterToPCQuery(filters);
   }
-  console.log(queryOptions.filter);
+  // console.log(queryOptions.filter);
 
-  const pineconeResponse1 = await index.namespace(pinecone_namespace_standard)
-    .query(queryOptions);
-  console.log(pineconeResponse1);
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_standard).query(queryOptions),
     opensearchClient.search({
@@ -296,7 +272,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, filter, full_text, topK = 5 } = await req.json();
+  const { query, filter, meta_contains, topK = 5 } = await req.json();
   // console.log(query, filter);
 
   const res = await generateQuery(query);
@@ -306,7 +282,7 @@ Deno.serve(async (req) => {
     res.semantic_query,
     [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
-    full_text,
+    meta_contains,
     filter,
   );
   // console.log(result);
@@ -322,16 +298,27 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "topK": 3}'
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
+      --header 'Content-Type: application/json' \
+      --header 'email: YourEmail' \
+      --header 'password: YourPassword' \
+      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["HJ 1131-2020", "HJ 57-2017"]}, "meta_contains":"钢铁 大气","topK": 3}'
 
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Content-Type: application/json' \
-    --header 'x-password: XXX' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
+      --header 'Content-Type: application/json' \
+      --header 'email: YourEmail' \
+      --header 'password: YourPassword' \
+      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["GB 28662-2012", "GB 28662-2012修"]}, "meta_contains":"钢铁 大气","topK": 3}'
+
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
+      --header 'Content-Type: application/json' \
+      --header 'email: YourEmail' \
+      --header 'password: YourPassword' \
+      --data '{"query": "二氧化硫一级浓度限值是多少？", "meta_contains":"钢铁 大气","topK": 3}'
+
+  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
+      --header 'Content-Type: application/json' \
+      --header 'email: YourEmail' \
+      --header 'password: YourPassword' \
+      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"rec_id": ["20b4e646-2b49-4b27-8e60-e53ab659ba25","8c44a081-4f75-407b-93b6-67fda5e35d1d"]}, "topK": 3}'
 */
