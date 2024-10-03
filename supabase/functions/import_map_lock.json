@@ -1,0 +1,20 @@
+{
+    "imports": {
+        "@aws-sdk/credential-provider-node": "npm:/@aws-sdk/credential-provider-node@3.658.1",
+        "@hono/hono": "jsr:@hono/hono",
+        "@langchain/core/messages": "npm:/@langchain/core@0.3.4/messages",
+        "@langchain/core/prompts": "npm:/@langchain/core@0.3.4/prompts",
+        "@langchain/core/runnables": "npm:/@langchain/core@0.3.4/runnables",
+        "@langchain/core/tools": "npm:/@langchain/core@0.3.4/tools",
+        "@langchain/langgraph": "npm:/@langchain/langgraph@0.2.11",
+        "@langchain/langgraph/prebuilt": "npm:/@langchain/langgraph@0.2.11/prebuilt",
+        "@langchain/openai": "npm:/@langchain/openai@0.3.2",
+        "@opensearch-project/opensearch": "npm:/@opensearch-project/opensearch@2.12.0",
+        "@opensearch-project/opensearch/aws": "npm:/@opensearch-project/opensearch@2.12.0/aws",
+        "@pinecone-database/pinecone": "npm:/@pinecone-database/pinecone@3.0.3",
+        "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
+        "@supabase/supabase-js@2": "jsr:@supabase/supabase-js@2",
+        "duck-duck-scrape": "npm:/duck-duck-scrape@2.2.5",
+        "zod": "npm:/zod@3.23.8"
+    }
+}
