@@ -3,25 +3,23 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 
 import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
 
-import { AwsSigv4Signer } from "@opensearch-project/opensearch/aws";
 import { Client } from "@opensearch-project/opensearch";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import generateQuery from "../_shared/generate_query.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
 const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
 
-const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
+const pinecone_api_key = Deno.env.get("PINECONE_API_KEY_US_EAST_1") ?? "";
 const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_esg = Deno.env.get("PINECONE_NAMESPACE_ESG") ?? "";
 
-const opensearch_region = Deno.env.get("OPENSEARCH_REGION") ?? "";
-const opensearch_domain = Deno.env.get("OPENSEARCH_DOMAIN") ?? "";
-const opensearch_index_name = Deno.env.get("OPENSEARCH_ESG_INDEX_NAME") ?? "";
+const opensearch_node = Deno.env.get("OPENSEARCH_NODE") ?? "";
+const opensearch_index_name = Deno.env.get("OPENSEARCH_ESG_INDEX_NAME") ??
+  "";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
   Deno.env.get("SUPABASE_URL") ?? "";
@@ -37,17 +35,7 @@ const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
 const opensearchClient = new Client({
-  ...AwsSigv4Signer({
-    region: opensearch_region,
-    service: "aoss",
-
-    getCredentials: () => {
-      // Any other method to acquire a new Credentials object can be used.
-      const credentialsProvider = defaultProvider();
-      return credentialsProvider();
-    },
-  }),
-  node: opensearch_domain,
+  node: opensearch_node,
 });
 
 async function getEsgMeta(supabase: SupabaseClient, id: string[]) {
@@ -174,8 +162,8 @@ const search = async (
     if (!rec_id_set.has(id)) {
       rec_id_set.add(id);
       unique_docs.push({
-        id: doc._source.reportId,
-        page_number: doc._source.pageNumber,
+        id: doc._source.rec_id,
+        page_number: doc._source.page_number,
         text: doc._source.text,
       });
     }
@@ -260,14 +248,12 @@ Deno.serve(async (req) => {
   2. Make an HTTP request:
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --header 'email: xxx' \
     --header 'password: xxx' \
     --data '{"query": "采取了哪些减排措施?", "filter": {"reportId": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
 
   curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --header 'email: xxx' \
     --header 'password: xxx' \
