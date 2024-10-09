@@ -8,6 +8,7 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { corsHeaders } from "../_shared/cors.ts";
 import generateQuery from "../_shared/generate_query.ts";
+import logInsert from "../_shared/supabase_function_log.ts";
 import supabaseAuth from "../_shared/supabase_auth.ts";
 
 const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -214,6 +215,14 @@ Deno.serve(async (req) => {
 
   const { query, filter, topK = 5 } = await req.json();
   // console.log(query, filter);
+
+  logInsert(
+    opensearchClient,
+    req.headers.get("email") ?? "",
+    Date.now(),
+    "esg_search",
+    topK,
+  );
 
   const res = await generateQuery(query);
   // console.log(res);
