@@ -18,8 +18,7 @@ const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
 const pinecone_namespace_esg = Deno.env.get("PINECONE_NAMESPACE_ESG") ?? "";
 
 const opensearch_node = Deno.env.get("OPENSEARCH_NODE") ?? "";
-const opensearch_index_name = Deno.env.get("OPENSEARCH_ESG_INDEX_NAME") ??
-  "";
+const opensearch_index_name = Deno.env.get("OPENSEARCH_ESG_INDEX_NAME") ?? "";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
   Deno.env.get("SUPABASE_URL") ?? "";
