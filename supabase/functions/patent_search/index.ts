@@ -3,8 +3,8 @@ import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from '@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 

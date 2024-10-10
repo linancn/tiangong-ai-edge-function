@@ -1,9 +1,9 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
+import { createClient } from '@supabase/supabase-js@2';
 import DDG from 'duck-duck-scrape';
 import { corsHeaders } from '../_shared/cors.ts';
-import { createClient } from '@supabase/supabase-js@2';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';

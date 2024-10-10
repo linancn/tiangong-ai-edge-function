@@ -1,19 +1,18 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { Annotation, MemorySaver, StateGraph } from '@langchain/langgraph';
-
-import { ChatOpenAI } from '@langchain/openai';
 import { Context } from '@hono/hono';
+import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { RunnableToolLike } from '@langchain/core/runnables';
-import SearchEsgTool from '../services/search_esg_tool.ts';
-import SearchInternetTool from '../services/search_internet_tool.ts';
 import { StructuredToolInterface } from '@langchain/core/tools';
+import { Annotation, MemorySaver, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
+import { ChatOpenAI } from '@langchain/openai';
 import { createClient } from '@supabase/supabase-js@2';
 import supabaseAuth from '../../_shared/supabase_auth.ts';
 import logInsert from '../../_shared/supabase_function_log.ts';
+import SearchEsgTool from '../services/search_esg_tool.ts';
+import SearchInternetTool from '../services/search_internet_tool.ts';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
