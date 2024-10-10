@@ -42,7 +42,7 @@ async function ragProcess(c: Context) {
   });
 
   const tools: (StructuredToolInterface | RunnableToolLike)[] = [
-    new SearchEsgTool(),
+    new SearchEsgTool({ email, password }),
     new SearchInternetTool(),
   ];
 
