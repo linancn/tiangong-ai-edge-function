@@ -13,6 +13,7 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { createClient } from "@supabase/supabase-js@2";
 import supabaseAuth from "../../_shared/supabase_auth.ts";
+import logInsert from "../../_shared/supabase_function_log.ts";
 
 const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
   Deno.env.get("SUPABASE_URL") ?? "";
@@ -29,6 +30,8 @@ async function ragProcess(c: Context) {
   if (authResponse.status !== 200) {
     return authResponse;
   }
+  
+  logInsert(email, Date.now(), "rag_graph");
 
   const { query } = await req.json();
 

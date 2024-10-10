@@ -217,7 +217,6 @@ Deno.serve(async (req) => {
   // console.log(query, filter);
 
   logInsert(
-    opensearchClient,
     req.headers.get("email") ?? "",
     Date.now(),
     "esg_search",

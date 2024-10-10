@@ -4,12 +4,17 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { Client } from "@opensearch-project/opensearch";
 
 function logInsert(
-    opensearchClient: Client,
     email: string,
     invoked_at: number,
     service_type: string,
-    top_k: number,
+    top_k: number = 0,
   ) {
+
+    const opensearch_node = Deno.env.get("OPENSEARCH_NODE") ?? "";
+    const opensearchClient = new Client({
+      node: opensearch_node,
+    });
+
     const document = {
       email,
       invoked_at,
