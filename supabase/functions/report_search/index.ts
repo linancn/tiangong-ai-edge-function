@@ -1,26 +1,24 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
+import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
+import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
 
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { Pinecone } from "@pinecone-database/pinecone";
-import { corsHeaders } from "../_shared/cors.ts";
-import generateQuery from "../_shared/generate_query.ts";
-import supabaseAuth from "../_shared/supabase_auth.ts";
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { Pinecone } from '@pinecone-database/pinecone';
+import { corsHeaders } from '../_shared/cors.ts';
+import generateQuery from '../_shared/generate_query.ts';
+import supabaseAuth from '../_shared/supabase_auth.ts';
 
-const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
-const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
+const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
+const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
-const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
-const pinecone_namespace_report = Deno.env.get("PINECONE_NAMESPACE_REPORT") ??
-  "";
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
+const pinecone_namespace_report = Deno.env.get('PINECONE_NAMESPACE_REPORT') ?? '';
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
-  Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_anon_key =
+  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -32,9 +30,9 @@ const index = pc.index(pinecone_index_name);
 
 async function getMeta(supabase: SupabaseClient, id: string[]) {
   const { data, error } = await supabase
-    .from("reports")
-    .select("id, title, issuing_organization, release_date, url")
-    .in("id", id);
+    .from('reports')
+    .select('id, title, issuing_organization, release_date, url')
+    .in('id', id);
 
   if (error) {
     console.error(error);
@@ -44,11 +42,7 @@ async function getMeta(supabase: SupabaseClient, id: string[]) {
   return data;
 }
 
-const search = async (
-  supabase: SupabaseClient,
-  semantic_query: string,
-  topK: number,
-) => {
+const search = async (supabase: SupabaseClient, semantic_query: string, topK: number) => {
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
   interface QueryOptions {
@@ -63,10 +57,7 @@ const search = async (
     includeMetadata: true,
   };
 
-  const pineconeResponse = await index.namespace(pinecone_namespace_report)
-    .query(
-      queryOptions,
-    );
+  const pineconeResponse = await index.namespace(pinecone_namespace_report).query(queryOptions);
 
   // console.log(pineconeResponse);
 
@@ -109,13 +100,12 @@ const search = async (
       const title = record.title;
       const issuing_organization = record.issuing_organization;
       const release_date = new Date(record.release_date);
-      const formatted_date = release_date.toISOString().split("T")[0];
+      const formatted_date = release_date.toISOString().split('T')[0];
       const url = `https://doi.org/${record.url}`;
-      const sourceEntry =
-        `[${title}, ${issuing_organization}. ${formatted_date}.](${url})`;
+      const sourceEntry = `[${title}, ${issuing_organization}. ${formatted_date}.](${url})`;
       return { content: doc.text, source: sourceEntry };
     } else {
-      throw new Error("Record not found");
+      throw new Error('Record not found');
     }
   });
   // console.log(docList);
@@ -123,15 +113,15 @@ const search = async (
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const supabase = createClient(supabase_url, supabase_anon_key);
   const authResponse = await supabaseAuth(
     supabase,
-    req.headers.get("email") ?? "",
-    req.headers.get("password") ?? "",
+    req.headers.get('email') ?? '',
+    req.headers.get('password') ?? '',
   );
   if (authResponse.status !== 200) {
     return authResponse;
@@ -142,17 +132,10 @@ Deno.serve(async (req) => {
 
   const res = await generateQuery(query);
 
-  const result = await search(
-    supabase,
-    res.semantic_query,
-    topK,
-  );
+  const result = await search(supabase, res.semantic_query, topK);
   // console.log(result);
 
-  return new Response(
-    JSON.stringify(result),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 });
 
 /* To invoke locally:

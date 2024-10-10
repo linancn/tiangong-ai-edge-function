@@ -1,42 +1,41 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
+import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
-import { Annotation, MemorySaver, StateGraph } from "@langchain/langgraph";
+import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
+import { Annotation, MemorySaver, StateGraph } from '@langchain/langgraph';
 
-import { ChatOpenAI } from "@langchain/openai";
-import { Context } from "@hono/hono";
-import { RunnableToolLike } from "@langchain/core/runnables";
-import SearchEsgTool from "../services/search_esg_tool.ts";
-import SearchInternetTool from "../services/search_internet_tool.ts";
-import { StructuredToolInterface } from "@langchain/core/tools";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { createClient } from "@supabase/supabase-js@2";
-import supabaseAuth from "../../_shared/supabase_auth.ts";
-import logInsert from "../../_shared/supabase_function_log.ts";
+import { ChatOpenAI } from '@langchain/openai';
+import { Context } from '@hono/hono';
+import { RunnableToolLike } from '@langchain/core/runnables';
+import SearchEsgTool from '../services/search_esg_tool.ts';
+import SearchInternetTool from '../services/search_internet_tool.ts';
+import { StructuredToolInterface } from '@langchain/core/tools';
+import { ToolNode } from '@langchain/langgraph/prebuilt';
+import { createClient } from '@supabase/supabase-js@2';
+import supabaseAuth from '../../_shared/supabase_auth.ts';
+import logInsert from '../../_shared/supabase_function_log.ts';
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
-  Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_anon_key =
+  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 async function ragProcess(c: Context) {
   const req = c.req;
-  const email = req.header("email") ?? "";
-  const password = req.header("password") ?? "";
+  const email = req.header('email') ?? '';
+  const password = req.header('password') ?? '';
 
   const supabase = createClient(supabase_url, supabase_anon_key);
   const authResponse = await supabaseAuth(supabase, email, password);
   if (authResponse.status !== 200) {
     return authResponse;
   }
-  
-  logInsert(email, Date.now(), "rag_graph");
+
+  logInsert(email, Date.now(), 'rag_graph');
 
   const { query } = await req.json();
 
-  const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
-  const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
+  const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
+  const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
 
   const StateAnnotation = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
@@ -66,10 +65,10 @@ async function ragProcess(c: Context) {
 
     // If the LLM makes a tool call, then we route to the "tools" node
     if (lastMessage.tool_calls?.length) {
-      return "tools";
+      return 'tools';
     }
     // Otherwise, we stop (reply to the user)
-    return "__end__";
+    return '__end__';
   }
 
   // Define the function that calls the model
@@ -83,11 +82,11 @@ async function ragProcess(c: Context) {
 
   // Define a new graph
   const workflow = new StateGraph(StateAnnotation)
-    .addNode("agent", callModel)
-    .addNode("tools", toolNode)
-    .addEdge("__start__", "agent")
-    .addConditionalEdges("agent", shouldContinue)
-    .addEdge("tools", "agent");
+    .addNode('agent', callModel)
+    .addNode('tools', toolNode)
+    .addEdge('__start__', 'agent')
+    .addConditionalEdges('agent', shouldContinue)
+    .addEdge('tools', 'agent');
 
   // Initialize memory to persist state between graph runs
   const checkpointer = new MemorySaver();
@@ -100,15 +99,14 @@ async function ragProcess(c: Context) {
   // Use the Runnable
   const finalState = await app.invoke(
     { messages: [new HumanMessage(query)] },
-    { configurable: { thread_id: "42" } },
+    { configurable: { thread_id: '42' } },
   );
 
   console.log(finalState.messages[finalState.messages.length - 1].content);
 
-  return new Response(
-    JSON.stringify(finalState, null, 2),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify(finalState, null, 2), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 export default ragProcess;

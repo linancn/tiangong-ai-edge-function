@@ -1,5 +1,9 @@
 {
+  "scripts": {
+    "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
+  },
   "devDependencies": {
-    "supabase": "^1.203.0"
+    "supabase": "^1.204.3",
+    "prettier": "^3.3.3"
   }
 }

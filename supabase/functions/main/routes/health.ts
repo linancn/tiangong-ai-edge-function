@@ -1,8 +1,8 @@
-import { Hono } from "@hono/hono";
+import { Hono } from '@hono/hono';
 
 const healthRouter = new Hono();
 
-healthRouter.get('/', (c) => c.json({ status: "healthy" }));
+healthRouter.get('/', (c) => c.json({ status: 'healthy' }));
 
 export default healthRouter;
 

@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 supabase/edge-runtime:v1.58.11
+FROM --platform=linux/arm64 supabase/edge-runtime:v1.58.12
 
 COPY ./supabase/functions/_shared/supabase_auth.ts /home/deno/functions/_shared/supabase_auth.ts
 COPY ./supabase/functions/_shared/supabase_function_log.ts /home/deno/functions/_shared/supabase_function_log.ts

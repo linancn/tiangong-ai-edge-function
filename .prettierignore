@@ -1,0 +1,13 @@
+**/*.svg
+.dockerignore
+.DS_Store
+.eslintignore
+*.png
+docker
+.editorconfig
+Dockerfile*
+.gitignore
+.prettierignore
+LICENSE
+.eslintcache
+*.lock

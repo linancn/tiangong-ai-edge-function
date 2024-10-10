@@ -1,9 +1,9 @@
-import { Hono } from "@hono/hono";
-import ragProcess from "../controller/rag_graph.ts";
+import { Hono } from '@hono/hono';
+import ragProcess from '../controller/rag_graph.ts';
 
 const ragRouter = new Hono();
 
-ragRouter.post("/", async (c) => {
+ragRouter.post('/', async (c) => {
   const result = await ragProcess(c);
   return result;
 });

@@ -1,31 +1,28 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
+import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { SupabaseClient, createClient } from "@supabase/supabase-js@2";
+import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
 
-import { Client } from "@opensearch-project/opensearch";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { Pinecone } from "@pinecone-database/pinecone";
-import { corsHeaders } from "../_shared/cors.ts";
-import generateQuery from "../_shared/generate_query.ts";
-import supabaseAuth from "../_shared/supabase_auth.ts";
+import { Client } from '@opensearch-project/opensearch';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { Pinecone } from '@pinecone-database/pinecone';
+import { corsHeaders } from '../_shared/cors.ts';
+import generateQuery from '../_shared/generate_query.ts';
+import supabaseAuth from '../_shared/supabase_auth.ts';
 
-const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
-const openai_embedding_model = Deno.env.get("OPENAI_EMBEDDING_MODEL") ?? "";
+const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
+const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get("PINECONE_API_KEY") ?? "";
-const pinecone_index_name = Deno.env.get("PINECONE_INDEX_NAME") ?? "";
-const pinecone_namespace_standard =
-  Deno.env.get("PINECONE_NAMESPACE_STANDARD") ?? "";
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
+const pinecone_namespace_standard = Deno.env.get('PINECONE_NAMESPACE_STANDARD') ?? '';
 
-const opensearch_node = Deno.env.get("OPENSEARCH_NODE") ?? "";
-const opensearch_index_name = Deno.env.get("OPENSEARCH_STANDARD_INDEX_NAME") ??
-  "";
+const opensearch_node = Deno.env.get('OPENSEARCH_NODE') ?? '';
+const opensearch_index_name = Deno.env.get('OPENSEARCH_STANDARD_INDEX_NAME') ?? '';
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
-  Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_anon_key =
+  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -39,12 +36,9 @@ const opensearchClient = new Client({
   node: opensearch_node,
 });
 
-async function getStandardsMeta(
-  supabase: SupabaseClient,
-  meta_contains: string,
-) {
+async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
   // console.log(full_text);
-  const { data, error } = await supabase.rpc("standards_full_text", {
+  const { data, error } = await supabase.rpc('standards_full_text', {
     meta_contains,
   });
 
@@ -59,8 +53,8 @@ async function getStandardsMeta(
 function formatTimestampToDate(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   const year = date.getFullYear();
-  const month = ("0" + (date.getMonth() + 1)).slice(-2);
-  const day = ("0" + date.getDate()).slice(-2);
+  const month = ('0' + (date.getMonth() + 1)).slice(-2);
+  const day = ('0' + date.getDate()).slice(-2);
   return `${year}-${month}-${day}`;
 }
 
@@ -106,10 +100,7 @@ const search = async (
 
   let pgResponse = null;
   if (meta_contains) {
-    pgResponse = await getStandardsMeta(
-      supabase,
-      meta_contains,
-    );
+    pgResponse = await getStandardsMeta(supabase, meta_contains);
   }
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
@@ -134,22 +125,22 @@ const search = async (
   const body = {
     query: filters
       ? {
-        bool: {
-          should: full_text_query.map((query) => ({
-            match: { text: query },
-          })),
-          minimum_should_match: 1,
-          filter: filters,
-        },
-      }
+          bool: {
+            should: full_text_query.map((query) => ({
+              match: { text: query },
+            })),
+            minimum_should_match: 1,
+            filter: filters,
+          },
+        }
       : {
-        bool: {
-          should: full_text_query.map((query) => ({
-            match: { text: query },
-          })),
-          minimum_should_match: 1,
+          bool: {
+            should: full_text_query.map((query) => ({
+              match: { text: query },
+            })),
+            minimum_should_match: 1,
+          },
         },
-      },
     size: topK,
   };
   // console.log(body);
@@ -249,8 +240,7 @@ const search = async (
     const standard_number = doc.standard_number;
     const issuing_organization = doc.organization;
     const effective_date = formatTimestampToDate(doc.effective_date);
-    const source_entry =
-      `${title}(${standard_number}), ${issuing_organization}. ${effective_date}.`;
+    const source_entry = `${title}(${standard_number}), ${issuing_organization}. ${effective_date}.`;
     return { content: doc.text, source: source_entry };
   });
 
@@ -258,15 +248,15 @@ const search = async (
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const supabase = createClient(supabase_url, supabase_anon_key);
   const authResponse = await supabaseAuth(
     supabase,
-    req.headers.get("email") ?? "",
-    req.headers.get("password") ?? "",
+    req.headers.get('email') ?? '',
+    req.headers.get('password') ?? '',
   );
   if (authResponse.status !== 200) {
     return authResponse;
@@ -287,10 +277,7 @@ Deno.serve(async (req) => {
   );
   // console.log(result);
 
-  return new Response(
-    JSON.stringify(result),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 });
 
 /* To invoke locally:

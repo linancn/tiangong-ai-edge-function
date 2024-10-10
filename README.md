@@ -1,4 +1,3 @@
-
 # TianGong-AI-Edge-Functions
 
 ## Env Preparing (Docker Engine MUST be Running)
@@ -11,12 +10,16 @@ nvm use
 
 curl -fsSL https://deno.land/install.sh | sh # Then manually add the deno directory to your $HOME/.zshrc (or similar)
 
-npm i supabase --save-dev
+npm install
+
 npm update supabase --save-dev
 
 deno cache --reload *.ts
 
 npx supabase start
+
+# Code Prettier
+npm run lint
 
 ```
 
@@ -28,12 +31,11 @@ rm -rf ~/Library/Caches/deno # for macOS
 rm -rf ~/.cache/deno # for Linux
 ```
 
-
 Rename the `.env.example` to `.env.local` and fill in the the values before the `npx supabase start` command.
 
 ## Local Development
 
-```bash
+````bash
 
 Started supabase local development setup.
 
@@ -50,7 +52,7 @@ service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
    S3 Access Key: 625729a08b95bf1b7ff351a663f3a23c
    S3 Secret Key: 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907
        S3 Region: local
-```
+````
 
 ## Local Test
 
@@ -64,7 +66,6 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compl
 
 curl -i --location --request GET 'http://127.0.0.1:64321/functions/v1/main/health'
 ```
-
 
 ## Docker Deployment on AWS ECS Fargate
 

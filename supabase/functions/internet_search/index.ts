@@ -1,20 +1,16 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
+import '@supabase/functions-js/edge-runtime.d.ts';
 
-import DDG from "duck-duck-scrape";
-import { corsHeaders } from "../_shared/cors.ts";
-import { createClient } from "@supabase/supabase-js@2";
-import supabaseAuth from "../_shared/supabase_auth.ts";
+import DDG from 'duck-duck-scrape';
+import { corsHeaders } from '../_shared/cors.ts';
+import { createClient } from '@supabase/supabase-js@2';
+import supabaseAuth from '../_shared/supabase_auth.ts';
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
-  Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_anon_key =
+  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-const search = async (
-  query: string,
-  maxResults: number = 3,
-) => {
+const search = async (query: string, maxResults: number = 3) => {
   try {
     const searchResults = await DDG.search(query, {
       safeSearch: DDG.SafeSearchType.STRICT,
@@ -24,8 +20,7 @@ const search = async (
       const results = searchResults.results.slice(0, maxResults);
       const markdownList = results.map((item) => {
         const content = item.description;
-        const source =
-          `![icon](${item.icon})${item.title} [(${item.hostname})](${item.url})`;
+        const source = `![icon](${item.icon})${item.title} [(${item.hostname})](${item.url})`;
         return { content, source };
       });
       return markdownList;
@@ -33,21 +28,21 @@ const search = async (
       return [];
     }
   } catch (error) {
-    console.error("Search error:", error);
+    console.error('Search error:', error);
     return [];
   }
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   const supabase = createClient(supabase_url, supabase_anon_key);
   const authResponse = await supabaseAuth(
     supabase,
-    req.headers.get("email") ?? "",
-    req.headers.get("password") ?? "",
+    req.headers.get('email') ?? '',
+    req.headers.get('password') ?? '',
   );
   if (authResponse.status !== 200) {
     return authResponse;
@@ -56,16 +51,10 @@ Deno.serve(async (req) => {
   const { query, maxResults = 5 } = await req.json();
   // console.log(query, maxResults);
 
-  const result = await search(
-    query,
-    maxResults,
-  );
+  const result = await search(query, maxResults);
   // console.log(result);
 
-  return new Response(
-    JSON.stringify(result),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 });
 
 /* To invoke locally:
