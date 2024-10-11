@@ -1,15 +1,14 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
-
-import { Client } from '@opensearch-project/opensearch';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import { Client } from '@opensearch-project/opensearch';
 import { Pinecone } from '@pinecone-database/pinecone';
+import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
-import logInsert from '../_shared/supabase_function_log.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
