@@ -8,11 +8,12 @@ import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_edu = Deno.env.get('PINECONE_NAMESPACE_EDU') ?? '';
 
@@ -211,6 +212,8 @@ Deno.serve(async (req) => {
 
   const { query, filter, topK = 5 } = await req.json();
   // console.log(query, filter);
+
+  logInsert(req.headers.get('email') ?? '', Date.now(), 'edu_search', topK);
 
   const res = await generateQuery(query);
   // console.log(res);
