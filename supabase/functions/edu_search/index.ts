@@ -1,18 +1,20 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { Client } from '@opensearch-project/opensearch';
-import { Pinecone } from '@pinecone-database/pinecone';
 import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
+
+import { Client } from '@opensearch-project/opensearch';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { Pinecone } from '@pinecone-database/pinecone';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_edu = Deno.env.get('PINECONE_NAMESPACE_EDU') ?? '';
 
@@ -211,6 +213,8 @@ Deno.serve(async (req) => {
 
   const { query, filter, topK = 5 } = await req.json();
   // console.log(query, filter);
+
+  logInsert(req.headers.get('email') ?? '', Date.now(), 'edu_search', topK);
 
   const res = await generateQuery(query);
   // console.log(res);
