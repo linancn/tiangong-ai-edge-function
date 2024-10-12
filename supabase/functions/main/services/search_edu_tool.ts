@@ -24,7 +24,7 @@ class SearchEduTool extends DynamicStructuredTool {
           isFilterEmpty ? { query, topK } : { query, topK, filter },
         );
 
-        const url = 'https://qyyqlnwqwgvzxnccnbgm.supabase.co/functions/v1/esg_search';
+        const url = 'https://qyyqlnwqwgvzxnccnbgm.supabase.co/functions/v1/edu_search';
 
         try {
           const response = await fetch(url, {
