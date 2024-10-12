@@ -44,7 +44,7 @@ async function ragProcess(c: Context) {
 
   const tools: (StructuredToolInterface | RunnableToolLike)[] = [
     new SearchEsgTool({ email, password }),
-    new SearchInternetTool(),
+    new SearchInternetTool({ email, password }),
   ];
 
   const model = new ChatOpenAI({

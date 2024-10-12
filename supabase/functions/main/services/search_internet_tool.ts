@@ -5,7 +5,10 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 class SearchInternetTool extends DynamicStructuredTool {
-  constructor() {
+  private email: string;
+  private password: string;
+
+  constructor({ email, password }: { email: string; password: string }) {
     super({
       name: 'Search_Internet_Tool',
       description: 'Call this tool to search internet for up-to-date information.',
@@ -34,8 +37,8 @@ class SearchInternetTool extends DynamicStructuredTool {
               Authorization: `Bearer ${
                 Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
               }`,
-              email: Deno.env.get('EMAIL') ?? '',
-              password: Deno.env.get('PASSWORD') ?? '',
+              email: this.email,
+              password: this.password,
               'x-region': 'us-east-1',
             },
             body: requestBody,
@@ -53,6 +56,8 @@ class SearchInternetTool extends DynamicStructuredTool {
         }
       },
     });
+    this.email = email;
+    this.password = password;
   }
 }
 

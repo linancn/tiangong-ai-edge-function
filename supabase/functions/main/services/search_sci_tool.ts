@@ -7,7 +7,10 @@ import { z } from 'zod';
 type FilterType = { journal: string[] } | Record<string | number | symbol, never>;
 
 class SearchSciTool extends DynamicStructuredTool {
-  constructor() {
+  private email: string;
+  private password: string;
+
+  constructor({ email, password }: { email: string; password: string }) {
     super({
       name: 'Search_Sci_Tool',
       description:
@@ -44,8 +47,8 @@ class SearchSciTool extends DynamicStructuredTool {
               Authorization: `Bearer ${
                 Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
               }`,
-              email: Deno.env.get('EMAIL') ?? '',
-              password: Deno.env.get('PASSWORD') ?? '',
+              email: this.email,
+              password: this.password,
               'x-region': 'us-east-1',
             },
             body: requestBody,
@@ -63,6 +66,9 @@ class SearchSciTool extends DynamicStructuredTool {
         }
       },
     });
+
+    this.email = email;
+    this.password = password;
   }
 }
 

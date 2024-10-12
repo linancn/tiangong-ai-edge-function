@@ -7,7 +7,10 @@ import { z } from 'zod';
 type FilterType = { course: string[] } | Record<string | number | symbol, never>;
 
 class SearchEduTool extends DynamicStructuredTool {
-  constructor() {
+  private email: string;
+  private password: string;
+
+  constructor({ email, password }: { email: string; password: string }) {
     super({
       name: 'Search_Edu_Tool',
       description:
@@ -34,8 +37,8 @@ class SearchEduTool extends DynamicStructuredTool {
               Authorization: `Bearer ${
                 Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
               }`,
-              email: Deno.env.get('EMAIL') ?? '',
-              password: Deno.env.get('PASSWORD') ?? '',
+              email: this.email,
+              password: this.password,
               'x-region': 'us-east-1',
             },
             body: requestBody,
@@ -53,6 +56,9 @@ class SearchEduTool extends DynamicStructuredTool {
         }
       },
     });
+
+    this.email = email;
+    this.password = password;
   }
 }
 
