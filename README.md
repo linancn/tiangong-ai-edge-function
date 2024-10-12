@@ -18,6 +18,9 @@ deno cache --reload *.ts
 
 npx supabase start
 
+# start local instance with .env.local
+npm run start
+
 # Code Prettier
 npm run lint
 

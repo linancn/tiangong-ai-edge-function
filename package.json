@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "start": "supabase functions serve --env-file ./supabase/.env.local",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
   "devDependencies": {
