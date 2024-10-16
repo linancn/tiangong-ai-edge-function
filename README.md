@@ -61,6 +61,9 @@ service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 
 ```bash
 
+npm run start 
+
+#equivalent to
 npx supabase functions serve --env-file ./supabase/.env.local
 
 curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance' \
@@ -69,6 +72,10 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compl
 
 curl -i --location --request GET 'http://127.0.0.1:64321/functions/v1/main/health'
 ```
+OR
+
+Edit .env file refer to .env.example then use REST Client extension of VSCode to test the API in test.local.http.
+
 
 ## Docker Deployment on AWS ECS Fargate
 

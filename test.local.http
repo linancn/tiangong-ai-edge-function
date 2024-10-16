@@ -1,0 +1,18 @@
+### 
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"如何减排二氧化碳？"}'
+
+###
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"如何减排二氧化碳？"}'
+
