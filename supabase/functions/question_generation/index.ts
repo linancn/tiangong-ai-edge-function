@@ -1,20 +1,19 @@
 // Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts";
+import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { ChatOpenAI } from "@langchain/openai";
-import { createClient } from "@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
-import supabaseAuth from "../_shared/supabase_auth.ts";
-import logInsert from "../_shared/supabase_function_log.ts";
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { ChatOpenAI } from '@langchain/openai';
+import { createClient } from '@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/cors.ts';
+import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
-const openai_api_key = Deno.env.get("OPENAI_API_KEY") ?? "";
-const openai_chat_model = Deno.env.get("OPENAI_CHAT_MODEL") ?? "";
+const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
+const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
 
-const supabase_url = Deno.env.get("LOCAL_SUPABASE_URL") ??
-  Deno.env.get("SUPABASE_URL") ?? "";
-const supabase_anon_key = Deno.env.get("LOCAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_anon_key =
+  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 const model = new ChatOpenAI({
   model: openai_chat_model,
@@ -23,46 +22,46 @@ const model = new ChatOpenAI({
 });
 
 const responseSchema = {
-  type: "object",
+  type: 'object',
   properties: {
     What: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
     Why: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
     Where: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
     When: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
     Who: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
     How: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "string",
+        type: 'string',
       },
     },
   },
-  required: ["What", "Why", "Where", "When", "Who", "How"],
+  required: ['What', 'Why', 'Where', 'When', 'Who', 'How'],
 };
 
 interface QueryResponse {
@@ -78,10 +77,10 @@ const modelWithStructuredOutput = model.withStructuredOutput(responseSchema);
 
 const prompt = ChatPromptTemplate.fromMessages([
   [
-    "system",
+    'system',
     `Generate 10 questions (MUST in the language same as perspective) for each perspective: What, Why, Where, When, Who, and How.`,
   ],
-  ["human", "Perspective: {input}"],
+  ['human', 'Perspective: {input}'],
 ]);
 
 const chain = prompt.pipe(modelWithStructuredOutput);
@@ -94,15 +93,15 @@ async function generateQuery(query: string) {
 // export default generateQuery;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
   // Get the session or user object
   const supabase = createClient(supabase_url, supabase_anon_key);
   const authResponse = await supabaseAuth(
     supabase,
-    req.headers.get("email") ?? "",
-    req.headers.get("password") ?? "",
+    req.headers.get('email') ?? '',
+    req.headers.get('password') ?? '',
   );
   if (authResponse.status !== 200) {
     return authResponse;
@@ -110,13 +109,13 @@ Deno.serve(async (req) => {
 
   const { query } = await req.json();
   // console.log(query, filter);
-  logInsert(req.headers.get("email") ?? "", Date.now(), "question_generation");
+  logInsert(req.headers.get('email') ?? '', Date.now(), 'question_generation');
 
   const result = await generateQuery(query);
   // console.log(result);
 
   return new Response(JSON.stringify(result), {
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   });
 });
 
