@@ -78,7 +78,7 @@ const modelWithStructuredOutput = model.withStructuredOutput(responseSchema);
 const prompt = ChatPromptTemplate.fromMessages([
   [
     'system',
-    `Generate 10 questions for each perspective (using the perspective language): What, Why, Where, When, Who, and How."`,
+    `Generate 10 questions (MUST in the language same as perspective) for each perspective: What, Why, Where, When, Who, and How.`,
   ],
   ['human', 'Perspective: {input}'],
 ]);
@@ -114,7 +114,9 @@ Deno.serve(async (req) => {
   const result = await generateQuery(query);
   // console.log(result);
 
-  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(result), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 });
 
 /* To invoke locally:
