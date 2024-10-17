@@ -62,8 +62,8 @@ type FilterType = { [field: string]: string[] };
 type DateFilterType = { [field: string]: { gte?: number; lte?: number } };
 
 type FiltersItem = {
-  terms?: { [field: string]: string[] },
-  range?: { [field: string]: { gte?: number; lte?: number }},
+  terms?: { [field: string]: string[] };
+  range?: { [field: string]: { gte?: number; lte?: number } };
 };
 
 type FiltersType = FiltersItem[];
@@ -74,7 +74,8 @@ type PCFilter = {
 
 function filterToPCQuery(filters: FiltersType): PCFilter {
   const andConditions = filters.flatMap((item) => {
-    const conditions: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }> = [];
+    const conditions: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }> =
+      [];
 
     if (item.terms) {
       for (const field in item.terms) {
@@ -136,18 +137,21 @@ const search = async (
       ids.push(item.id);
     });
     filters.push({ terms: { rec_id: ids } });
-  } 
+  }
   if (pgResponse && pgResponse.length === 0) {
-    return "No standards found matching the metadata filters. Please try again with different metadata filter."
+    return {
+      message: 'No records found matching the metadata filters.',
+      suggestion: 'Please try using different metadata filters.',
+    };
   }
 
   if (filter || datefilter) {
-    const filtersArray: Array<{ terms?: typeof filter, range?: typeof datefilter }> = [];
+    const filtersArray: Array<{ terms?: typeof filter; range?: typeof datefilter }> = [];
     if (filter) {
-        filtersArray.push({ terms: filter });
+      filtersArray.push({ terms: filter });
     }
     if (datefilter) {
-        filtersArray.push({ range: datefilter });
+      filtersArray.push({ range: datefilter });
     }
     filters.push(...filtersArray);
   }
