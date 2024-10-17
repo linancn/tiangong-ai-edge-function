@@ -13,7 +13,7 @@ import logInsert from '../_shared/supabase_function_log.ts';
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_standard = Deno.env.get('PINECONE_NAMESPACE_STANDARD') ?? '';
 
@@ -59,30 +59,50 @@ function formatTimestampToDate(timestamp: number): string {
 }
 
 type FilterType = { [field: string]: string[] };
+type DateFilterType = { [field: string]: { gte?: number; lte?: number } };
 
 type FiltersItem = {
-  terms: { [field: string]: string[] };
+  terms?: { [field: string]: string[] },
+  range?: { [field: string]: { gte?: number; lte?: number }},
 };
 
 type FiltersType = FiltersItem[];
 
 type PCFilter = {
-  $and: Array<{ [field: string]: { $in: string[] } }>;
+  $and: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }>;
 };
 
 function filterToPCQuery(filters: FiltersType): PCFilter {
-  const andConditions = filters.map((item) => {
+  const andConditions = filters.flatMap((item) => {
+    const conditions: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }> = [];
+
     if (item.terms) {
-      const field = Object.keys(item.terms)[0];
-      const values = item.terms[field];
-      return {
-        [field]: {
-          $in: values,
-        },
-      };
+      for (const field in item.terms) {
+        conditions.push({
+          [field]: {
+            $in: item.terms[field],
+          },
+        });
+      }
     }
-    return {};
+
+    if (item.range) {
+      for (const field in item.range) {
+        const rangeConditions: { $gte?: number; $lte?: number } = {};
+        if (item.range[field].gte) {
+          rangeConditions.$gte = item.range[field].gte;
+        }
+        if (item.range[field].lte) {
+          rangeConditions.$lte = item.range[field].lte;
+        }
+        conditions.push({
+          [field]: rangeConditions,
+        });
+      }
+    }
+    return conditions;
   });
+
   return {
     $and: andConditions,
   };
@@ -95,6 +115,7 @@ const search = async (
   topK: number,
   meta_contains?: string,
   filter?: FilterType,
+  datefilter?: DateFilterType,
 ) => {
   // console.log(topK, filter, meta_contains);
 
@@ -115,12 +136,20 @@ const search = async (
       ids.push(item.id);
     });
     filters.push({ terms: { rec_id: ids } });
-  } else {
-    return 'No standards found matching the metadata filters. Please try again with different metadata filter.';
+  } 
+  if (pgResponse && pgResponse.length === 0) {
+    return "No standards found matching the metadata filters. Please try again with different metadata filter."
   }
 
-  if (filter) {
-    filters.push({ terms: filter });
+  if (filter || datefilter) {
+    const filtersArray: Array<{ terms?: typeof filter, range?: typeof datefilter }> = [];
+    if (filter) {
+        filtersArray.push({ terms: filter });
+    }
+    if (datefilter) {
+        filtersArray.push({ range: datefilter });
+    }
+    filters.push(...filtersArray);
   }
   // console.log(filters);
 
@@ -170,7 +199,7 @@ const search = async (
   if (filters) {
     queryOptions.filter = filterToPCQuery(filters);
   }
-  // console.log(queryOptions.filter);
+  // console.log(queryOptions);
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_standard).query(queryOptions),
@@ -181,17 +210,8 @@ const search = async (
   ]);
 
   // console.log(queryOptions.filter);
-
-  // if (!pineconeResponse) {
-  //   console.error("Pinecone query response is empty.");
-  // }
-
   // console.log(pineconeResponse);
   // console.log(fulltextResponse.body.hits.hits);
-
-  // if (!pineconeResponse || !fulltextResponse) {
-  //   throw new Error("One or both of the search queries failed");
-  // }
 
   const rec_id_set = new Set();
   const unique_docs = [];
@@ -264,7 +284,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, filter, meta_contains, topK = 5 } = await req.json();
+  const { query, filter, datefilter, meta_contains, topK = 5 } = await req.json();
   // console.log(query, filter);
 
   logInsert(req.headers.get('email') ?? '', Date.now(), 'standard_search', topK);
@@ -278,6 +298,7 @@ Deno.serve(async (req) => {
     topK,
     meta_contains,
     filter,
+    datefilter,
   );
   // console.log(result);
 
