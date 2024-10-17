@@ -8,6 +8,7 @@ import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
@@ -114,6 +115,8 @@ const search = async (
       ids.push(item.id);
     });
     filters.push({ terms: { rec_id: ids } });
+  }else{
+    return "No standards found matching the metadata filters. Please try again with different metadata filter.";
   }
 
   if (filter) {
@@ -263,6 +266,8 @@ Deno.serve(async (req) => {
 
   const { query, filter, meta_contains, topK = 5 } = await req.json();
   // console.log(query, filter);
+
+  logInsert(req.headers.get('email') ?? '', Date.now(), 'standard_search', topK);
 
   const res = await generateQuery(query);
   // console.log(res);
