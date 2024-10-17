@@ -4,7 +4,7 @@ import '@supabase/functions-js/edge-runtime.d.ts';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -86,8 +86,8 @@ function filterToPCQuery(filters: FiltersType): PCFilter {
 }
 
 const search = async (
-  // supabase: SupabaseClient, 
-  semantic_query: string, 
+  // supabase: SupabaseClient,
+  semantic_query: string,
   full_text_query: string[],
   topK: number,
   filter?: FilterType,
@@ -228,8 +228,8 @@ Deno.serve(async (req) => {
   const res = await generateQuery(query);
 
   const result = await search(
-    // supabase, 
-    res.semantic_query, 
+    // supabase,
+    res.semantic_query,
     [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
     filter,

@@ -115,8 +115,8 @@ const search = async (
       ids.push(item.id);
     });
     filters.push({ terms: { rec_id: ids } });
-  }else{
-    return "No standards found matching the metadata filters. Please try again with different metadata filter.";
+  } else {
+    return 'No standards found matching the metadata filters. Please try again with different metadata filter.';
   }
 
   if (filter) {
