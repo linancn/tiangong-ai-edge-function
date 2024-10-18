@@ -16,3 +16,69 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"如何减排二氧化碳？"}'
 
+### ESG：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"如何减排二氧化碳？", "topK": 3}'
+
+###ESG：rec_id filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "溫室氣體總排放量是多少？", "filter": {"rec_id": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
+
+###ESG：时间filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "溫室氣體總排放量是多少？", "datefilter": {"publication_date": {"gte": 1677836800}}, "topK": 3}'
+
+
+###ESG：meta_contains
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "溫室氣體總排放量是多少？", "meta_contains":"太古", "topK": 3}'
+
+
+
+
+###Standard：时间和meta_contains filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？", "datefilter": {"effective_date": {"gte": 1077836800}},"meta_contains":"钢铁 大气","topK": 3}'
+
+###Standard：时间filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？", "datefilter": {"effective_date": {"gte": 1377836800}},"topK": 3}'
+
+###Standard：filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["HJ 1131-2020", "HJ 57-2017"]},"topK": 3}'
+
+###Standard：meta_contains
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？", "meta_contains":"空气", "topK": 3}'
+
+###Standard：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'

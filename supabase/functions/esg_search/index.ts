@@ -36,30 +36,75 @@ const opensearchClient = new Client({
   node: opensearch_node,
 });
 
-async function getEsgMeta(supabase: SupabaseClient, id: string[]) {
-  const { data, error } = await supabase
-    .from('esg_meta')
-    .select('id, report_title, company_name, publication_date')
-    .in('id', id);
+async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
+  // console.log(full_text);
+  const { data, error } = await supabase.rpc('esg_full_text', {
+    meta_contains,
+  });
 
   if (error) {
-    // console.error(error);
+    console.error(error);
     return null;
   }
   // console.log(data);
   return data;
 }
 
-type FilterType = { reportId: string[] } | Record<string | number | symbol, never>;
+function formatTimestampToDate(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const year = date.getFullYear();
+  const month = ('0' + (date.getMonth() + 1)).slice(-2);
+  const day = ('0' + date.getDate()).slice(-2);
+  return `${year}-${month}-${day}`;
+}
+
+type FilterType = { [field: string]: string[] };
+type DateFilterType = { [field: string]: { gte?: number; lte?: number } };
+type FiltersItem = {
+  terms?: { [field: string]: string[] };
+  range?: { [field: string]: { gte?: number; lte?: number } };
+};
+type FiltersType = FiltersItem[];
+
 type PCFilter = {
-  $or: { rec_id: string }[];
+  $and: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }>;
 };
 
-function filterToPCQuery(filter: FilterType): PCFilter {
-  const { reportId } = filter;
-  const andConditions = reportId.map((c) => ({ rec_id: c }));
+function filterToPCQuery(filters: FiltersType): PCFilter {
+  const andConditions = filters.flatMap((item) => {
+    const conditions: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }> =
+      [];
 
-  return { $or: andConditions };
+    if (item.terms) {
+      for (const field in item.terms) {
+        conditions.push({
+          [field]: {
+            $in: item.terms[field],
+          },
+        });
+      }
+    }
+
+    if (item.range) {
+      for (const field in item.range) {
+        const rangeConditions: { $gte?: number; $lte?: number } = {};
+        if (item.range[field].gte) {
+          rangeConditions.$gte = item.range[field].gte;
+        }
+        if (item.range[field].lte) {
+          rangeConditions.$lte = item.range[field].lte;
+        }
+        conditions.push({
+          [field]: rangeConditions,
+        });
+      }
+    }
+    return conditions;
+  });
+
+  return {
+    $and: andConditions,
+  };
 }
 
 const search = async (
@@ -67,23 +112,58 @@ const search = async (
   semantic_query: string,
   full_text_query: string[],
   topK: number,
-  filter: FilterType,
+  meta_contains?: string,
+  filter?: FilterType,
+  datefilter?: DateFilterType,
 ) => {
   // console.log(full_text_query, topK, filter);
+
+  let pgResponse = null;
+  if (meta_contains) {
+    pgResponse = await getStandardsMeta(supabase, meta_contains);
+  }
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
   // console.log(filter);
 
+  const filters = [];
+
+  if (pgResponse && pgResponse.length > 0) {
+    const ids: string[] = [];
+    pgResponse.forEach((item: { id: string }) => {
+      ids.push(item.id);
+    });
+    filters.push({ terms: { rec_id: ids } });
+  }
+  if (pgResponse && pgResponse.length === 0) {
+    return {
+      message: 'No records found matching the metadata filters.',
+      suggestion: 'Please try using different metadata filters.',
+    };
+  }
+
+  if (filter || datefilter) {
+    const filtersArray: Array<{ terms?: typeof filter; range?: typeof datefilter }> = [];
+    if (filter) {
+      filtersArray.push({ terms: filter });
+    }
+    if (datefilter) {
+      filtersArray.push({ range: datefilter });
+    }
+    filters.push(...filtersArray);
+  }
+  // console.log(filters);
+
   const body = {
-    query: filter
+    query: filters
       ? {
           bool: {
             should: full_text_query.map((query) => ({
               match: { text: query },
             })),
             minimum_should_match: 1,
-            filter: [{ terms: filter }],
+            filter: filters,
           },
         }
       : {
@@ -113,9 +193,11 @@ const search = async (
     includeMetadata: true,
   };
 
-  if (filter) {
-    queryOptions.filter = filterToPCQuery(filter);
+  if (filters) {
+    queryOptions.filter = filterToPCQuery(filters);
   }
+
+  // console.log(queryOptions.filter);
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_esg).query(queryOptions),
@@ -145,6 +227,9 @@ const search = async (
           id: doc.metadata.rec_id,
           page_number: doc.metadata.page_number,
           text: doc.metadata.text,
+          report_title: doc.metadata.title,
+          company_name: doc.metadata.company_name,
+          publication_date: doc.metadata.publication_date,
         });
       }
     }
@@ -159,6 +244,9 @@ const search = async (
         id: doc._source.rec_id,
         page_number: doc._source.page_number,
         text: doc._source.text,
+        report_title: doc._source.title,
+        company_name: doc._source.company_name,
+        publication_date: doc._source.publication_date,
       });
     }
   }
@@ -170,22 +258,13 @@ const search = async (
 
   // console.log(unique_doc_id_set);
 
-  const pgResponse = await getEsgMeta(supabase, Array.from(unique_doc_id_set));
-
   const docList = unique_docs.map((doc) => {
-    const record = pgResponse?.find((r) => r.id === doc.id);
-
-    if (record) {
-      const report_title = record.report_title;
-      const company_name = record.company_name;
-      const publication_date = new Date(record.publication_date);
-      const formatted_date = publication_date.toISOString().split('T')[0];
-      const page_number = doc.page_number;
-      const source_entry = `${company_name}: **${report_title} (${page_number})**. ${formatted_date}.`;
-      return { content: doc.text, source: source_entry };
-    } else {
-      throw new Error('Record not found');
-    }
+    const report_title = doc.report_title;
+    const company_name = doc.company_name;
+    const publication_date = formatTimestampToDate(doc.publication_date);
+    const page_number = doc.page_number;
+    const source_entry = `${company_name}: **${report_title} (${page_number})**. ${publication_date}.`;
+    return { content: doc.text, source: source_entry };
   });
 
   return docList;
@@ -206,7 +285,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, filter, topK = 5 } = await req.json();
+  const { query, filter, datefilter, meta_contains, topK = 5 } = await req.json();
   // console.log(query, filter);
 
   logInsert(req.headers.get('email') ?? '', Date.now(), 'esg_search', topK);
@@ -223,7 +302,9 @@ Deno.serve(async (req) => {
     res.semantic_query,
     [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
+    meta_contains,
     filter,
+    datefilter,
   );
   // console.log(result);
 
