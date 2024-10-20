@@ -82,3 +82,33 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'
+
+### Internal_search：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
+
+### Internal_search：id filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"rec_id": ["1722c59d-adda-4a1a-afd2-d656c1ef60bb","d878ab2b-17a5-4b71-a101-f9013a564309"]}, "topK": 3}'
+
+### Internal_search：tag filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"tag": ["ali"]}, "topK": 3}'
+
+### Internal_search：deployed service
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
