@@ -189,6 +189,7 @@ const search = async (
     vector: number[];
     topK: number;
     includeMetadata: boolean;
+    includeValues: boolean;
     filter?: PCFilter;
   }
 
@@ -196,6 +197,7 @@ const search = async (
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
+    includeValues: false
   };
 
   // console.log(filters);
