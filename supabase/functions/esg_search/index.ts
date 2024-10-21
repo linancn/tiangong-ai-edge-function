@@ -192,7 +192,7 @@ const search = async (
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
-    includeValues: false
+    includeValues: false,
   };
 
   if (filters) {
@@ -222,18 +222,16 @@ const search = async (
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
-      if (doc.metadata) {
-        unique_docs.push({
-          id: doc.metadata.rec_id,
-          page_number: doc.metadata.page_number,
-          text: doc.metadata.text,
-          report_title: doc.metadata.title,
-          company_name: doc.metadata.company_name,
-          publication_date: doc.metadata.publication_date,
-        });
-      }
+    rec_id_set.add(id);
+    if (doc.metadata) {
+      unique_docs.push({
+        id: doc.metadata.rec_id,
+        page_number: doc.metadata.page_number,
+        text: doc.metadata.text,
+        report_title: doc.metadata.title,
+        company_name: doc.metadata.company_name,
+        publication_date: doc.metadata.publication_date,
+      });
     }
   }
 

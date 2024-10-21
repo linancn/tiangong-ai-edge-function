@@ -72,7 +72,7 @@ const search = async (semantic_query: string, topK: number, filter?: FilterType)
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
-    includeValues: false
+    includeValues: false,
   };
 
   if (filter && Object.keys(filter).length > 0) {

@@ -120,7 +120,7 @@ const search = async (
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
-    includeValues: false
+    includeValues: false,
   };
 
   if (filters) {
@@ -150,15 +150,13 @@ const search = async (
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
-      if (doc.metadata) {
-        unique_docs.push({
-          id: doc.metadata.rec_id,
-          text: doc.metadata.text,
-          title: doc.metadata.title,
-        });
-      }
+    rec_id_set.add(id);
+    if (doc.metadata) {
+      unique_docs.push({
+        id: doc.metadata.rec_id,
+        text: doc.metadata.text,
+        title: doc.metadata.title,
+      });
     }
   }
 

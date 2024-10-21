@@ -99,7 +99,7 @@ const search = async (
     filters.push({ terms: filter });
   }
 
-  console.log(full_text_query, topK, filters);
+  // console.log(full_text_query, topK, filters);
 
   const body = {
     query: filters
@@ -135,7 +135,7 @@ const search = async (
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
-    includeValues: false
+    includeValues: false,
   };
 
   if (filters) {
@@ -158,18 +158,16 @@ const search = async (
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
-      if (doc.metadata) {
-        unique_docs.push({
-          id: doc.metadata.rec_id,
-          organization: doc.metadata.organization,
-          title: doc.metadata.title,
-          release_date: doc.metadata.release_date,
-          text: doc.metadata.text,
-          url: doc.metadata.url,
-        });
-      }
+    rec_id_set.add(id);
+    if (doc.metadata) {
+      unique_docs.push({
+        id: doc.metadata.rec_id,
+        organization: doc.metadata.organization,
+        title: doc.metadata.title,
+        release_date: doc.metadata.release_date,
+        text: doc.metadata.text,
+        url: doc.metadata.url,
+      });
     }
   }
   for (const doc of fulltextResponse.body.hits.hits) {
