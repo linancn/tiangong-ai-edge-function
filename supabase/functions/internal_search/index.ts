@@ -144,13 +144,13 @@ const search = async (
   // console.log(pineconeResponse);
   // console.log(fulltextResponse.body.hits.hits);
 
-  const rec_id_set = new Set();
+  const id_set = new Set();
   const unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    rec_id_set.add(id);
+    id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
         id: doc.metadata.rec_id,
@@ -163,7 +163,7 @@ const search = async (
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
 
-    if (!rec_id_set.has(id)) {
+    if (!id_set.has(id)) {
       unique_docs.push({
         id: doc._source.rec_id,
         text: doc._source.text,
