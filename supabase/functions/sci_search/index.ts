@@ -27,19 +27,33 @@ const openaiClient = new OpenAIEmbeddings({
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
-async function getMeta(supabase: SupabaseClient, doi: string[]) {
-  const { data, error } = await supabase
-    .from('journals')
-    .select('doi, title, authors')
-    .in('doi', doi);
-
-  if (error) {
-    // console.error(error);
-    return null;
-  }
-  // console.log(data);
-  return data;
+interface JournalData {
+  doi: string;
+  title: string;
+  authors: string[];
 }
+
+async function getMeta(supabase: SupabaseClient, doi: string[]): Promise<JournalData[] | null> {
+  const batchSize = 400;
+  let allData: JournalData[] = [];
+
+  for (let i = 0; i < doi.length; i += batchSize) {
+    const batch = doi.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from('journals')
+      .select('doi, title, authors')
+      .in('doi', batch);
+
+    if (error) {
+      return null;
+    }
+
+    allData = allData.concat(data as JournalData[]);
+  }
+
+  return allData;
+}
+
 
 function formatTimestampToYearMonth(timestamp: number): string {
   const date = new Date(timestamp * 1000);
@@ -130,7 +144,7 @@ const search = async (
   }
 
   const uniqueIds = new Set(unique_docs.map((doc) => doc.id));
-  // console.log(Array.from(uniqueIds));
+  console.log(Array.from(uniqueIds));
 
   const pgResponse = await getMeta(supabase, Array.from(uniqueIds));
 
