@@ -90,6 +90,7 @@ const search = async (
     vector: number[];
     topK: number;
     includeMetadata: boolean;
+    includeValues: boolean;
     filter?: PCFilter;
   }
 
@@ -97,6 +98,7 @@ const search = async (
     vector: searchVector,
     topK: topK,
     includeMetadata: true,
+    includeValues: false
   };
 
   if (filter && Object.keys(filter).length > 0) {
@@ -105,7 +107,7 @@ const search = async (
 
   const pineconeResponse = await index.namespace(pinecone_namespace_sci).query(queryOptions);
 
-  // console.log(pineconeResponse);
+  console.log(pineconeResponse);
 
   const rec_id_set = new Set();
   const unique_docs = [];
