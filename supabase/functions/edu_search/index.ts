@@ -139,13 +139,13 @@ const search = async (
   //   throw new Error("One or both of the search queries failed");
   // }
 
-  const rec_id_set = new Set();
+  const id_set = new Set();
   const unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    rec_id_set.add(id);
+    id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
         id: doc.metadata.rec_id,
@@ -158,8 +158,7 @@ const search = async (
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
 
-    if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
+    if (!id_set.has(id)) {
       unique_docs.push({
         id: doc._source.rec_id,
         course: doc._source.course,

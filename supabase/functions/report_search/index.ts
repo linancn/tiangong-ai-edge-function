@@ -150,15 +150,15 @@ const search = async (
     }),
   ]);
 
-  console.log(pineconeResponse);
+  // console.log(pineconeResponse);
 
-  const rec_id_set = new Set();
+  const id_set = new Set();
   const unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
 
-    rec_id_set.add(id);
+    id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
         id: doc.metadata.rec_id,
@@ -173,8 +173,7 @@ const search = async (
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
 
-    if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
+    if (!id_set.has(id)) {
       unique_docs.push({
         id: doc._source.rec_id,
         organization: doc._source.organization,
@@ -186,10 +185,10 @@ const search = async (
     }
   }
 
-  const unique_doc_id_set = new Set<string>();
-  for (const doc of unique_docs) {
-    unique_doc_id_set.add(doc.id);
-  }
+  // const unique_doc_id_set = new Set<string>();
+  // for (const doc of unique_docs) {
+  //   unique_doc_id_set.add(doc.id);
+  // }
 
   const docList = unique_docs.map((doc) => {
     const title = doc.title;
