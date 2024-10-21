@@ -4,7 +4,7 @@ import '@supabase/functions-js/edge-runtime.d.ts';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -36,18 +36,32 @@ const opensearchClient = new Client({
   node: opensearch_node,
 });
 
-async function getEduMeta(supabase: SupabaseClient, id: string[]) {
-  const { data, error } = await supabase
-    .from('edu_meta')
-    .select('id, name, chapter_number, description')
-    .in('id', id);
+interface EduData {
+  id: string;
+  name: string;
+  chapter_number: number;
+  description: string;
+}
 
-  if (error) {
-    console.error(error);
-    return null;
+async function getEduMeta(supabase: SupabaseClient, id: string[]): Promise<EduData[] | null> {
+  const batchSize = 400;
+  let allData: EduData[] = [];
+
+  for (let i = 0; i < id.length; i += batchSize) {
+    const batch = id.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from('edu_meta')
+      .select('id, name, chapter_number, description')
+      .in('id', batch);
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    allData = allData.concat(data as EduData[]);
   }
-  // console.log(data);
-  return data;
+  return allData;
 }
 
 type FilterType = { course: string[] } | Record<string | number | symbol, never>;
@@ -225,7 +239,9 @@ Deno.serve(async (req) => {
   );
   // console.log(result);
 
-  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(result), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 });
 
 /* To invoke locally:
