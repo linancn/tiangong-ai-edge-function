@@ -72,13 +72,11 @@ const search = async (
 ) => {
   // console.log(full_text_query, topK, filter);
 
-  
   const searchVector = await openaiClient.embedQuery(semantic_query);
 
   // console.log(filter);
 
   const filters = [];
-
 
   if (filter) {
     filters.push({ terms: filter });
