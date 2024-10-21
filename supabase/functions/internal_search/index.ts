@@ -164,7 +164,6 @@ const search = async (
     const id = doc._id;
 
     if (!rec_id_set.has(id)) {
-      rec_id_set.add(id);
       unique_docs.push({
         id: doc._source.rec_id,
         text: doc._source.text,
@@ -173,10 +172,10 @@ const search = async (
     }
   }
 
-  const unique_doc_id_set = new Set<string>();
-  for (const doc of unique_docs) {
-    unique_doc_id_set.add(doc.id);
-  }
+  // const unique_doc_id_set = new Set<string>();
+  // for (const doc of unique_docs) {
+  //   unique_doc_id_set.add(doc.id);
+  // }
 
   // console.log(unique_doc_id_set);
 
