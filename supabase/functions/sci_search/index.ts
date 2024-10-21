@@ -107,7 +107,7 @@ const search = async (
 
   const pineconeResponse = await index.namespace(pinecone_namespace_sci).query(queryOptions);
 
-  console.log(pineconeResponse);
+  // console.log(pineconeResponse);
 
   const rec_id_set = new Set();
   const unique_docs = [];
