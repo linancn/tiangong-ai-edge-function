@@ -66,7 +66,7 @@ npm run start
 #equivalent to
 npx supabase functions serve --env-file ./supabase/.env.local
 
-deno run --allow-all --import-map supabase/functions/import_map.json --watch supabase/functions/main/index.ts
+deno run --allow-all --import-map supabase/functions/import_map.json --env --watch supabase/functions/main/index.ts
 
 curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance' \
     --header 'Content-Type: application/json' \
