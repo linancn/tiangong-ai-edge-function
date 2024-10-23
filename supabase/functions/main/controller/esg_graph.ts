@@ -64,7 +64,7 @@ async function esgProcess(c: Context) {
   const maxCycleCount = 2;
   // Define the function that calls the model
   async function callModel(state: typeof StateAnnotation.State) {
-    console.log('---PROCESS: CALL MODEL---');
+    console.log('---      PROCESS: CALL MODEL      ---');
     const messages = state.messages;
     const lastMessage = [messages[messages.length - 1] as AIMessage];
     // console.log(lastMessage)
@@ -84,7 +84,7 @@ async function esgProcess(c: Context) {
     const chain = prompt.pipe(model);
     const response = (await chain.invoke({ description: lastMessage })) as AIMessage;
     // console.log(response)
-    let cycleCount = 0;
+    let cycleCount = 1;
     if (state.cycleCount !== null) {
       cycleCount = state.cycleCount + 1;
     }
@@ -102,18 +102,18 @@ async function esgProcess(c: Context) {
 
     // If the LLM makes a tool call, then we route to the "tools" node
     if (lastMessage.tool_calls?.length) {
-      console.log('---DECISION: CALL TOOLS---');
+      console.log('---     DECISION: CALL TOOLS      ---');
       return 'tools';
     }
     // Otherwise, we stop (reply to the user)
-    console.log('---DECISION: END---');
+    console.log('---          DECISION: END        ---');
     return '__end__';
   }
 
   async function gradeContents(
     state: typeof StateAnnotation.State,
   ): Promise<Partial<typeof StateAnnotation.State>> {
-    console.log('---GET RELEVANCE---');
+    console.log('---    PROCESS: GET RELEVANCE     ---');
 
     const { messages } = state;
     const tool = {
@@ -170,18 +170,18 @@ async function esgProcess(c: Context) {
   // Define the function that determines whether to continue or not
   // We can extract the state typing via `StateAnnotation.State`
   function checkRelevance(state: typeof StateAnnotation.State) {
-    console.log('---PROCESS: CHECK RELEVANCE---');
+    console.log('---   PROCESS: CHECK RELEVANCE    ---');
     const { messages, cycleCount } = state;
     const lastMessage = messages[messages.length - 1] as AIMessage;
     // console.log(messages)
     if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
       if (lastMessage.tool_calls[0].args.relevanceScore === 'yes') {
-        console.log('---DECISION: CONTENTS RELEVANT---');
+        console.log('---  DECISION: CONTENTS RELEVANT  ---');
         return 'generate';
-      } else {
+      } else {        
         console.log('---DECISION: CONTENTS NOT RELEVANT---');
         if (cycleCount === maxCycleCount) {
-          console.log('---DECISION: MAX CYCLES REACHED---');
+          console.log('---  DECISION: MAX CYCLE REACHED  ---');
           return 'generate';
         } else {
           return 'supplement';
@@ -193,7 +193,7 @@ async function esgProcess(c: Context) {
   }
 
   async function supplementContents(state: typeof StateAnnotation.State) {
-    console.log('---PROCESS: SUPPLEMENT CONTENTS---');
+    console.log('---  PROCESS: SUPPLEMENT CONTENT  ---');
     const messages = state.messages;
     const query = messages[0].content as string;
     const lastMessage = messages[messages.length - 1] as AIMessage;
@@ -223,7 +223,7 @@ async function esgProcess(c: Context) {
   async function generate(
     state: typeof StateAnnotation.State,
   ): Promise<Partial<typeof StateAnnotation.State>> {
-    console.log('---PROCESS: GENERATE ARTICLE---');
+    console.log('---    PROCESS: GENERATE ARTICLE  ---');
     const messages = state.messages;
     // console.log(messages);
     const query = messages[0].content as string;
@@ -256,7 +256,7 @@ async function esgProcess(c: Context) {
       query: query,
       retrievedContents: retrievedContents.toString(),
     });
-    console.log(response);
+    // console.log(response);
 
     return {
       messages: [response],
@@ -267,7 +267,7 @@ async function esgProcess(c: Context) {
   async function suggestion(
     state: typeof StateAnnotation.State,
   ): Promise<Partial<typeof StateAnnotation.State>> {
-    console.log('---GIVING SUGGESTIONS---');
+    console.log('---  PROCESS: GIVING SUGGESTIONS  ---');
 
     const { messages, finalContents } = state;
 
@@ -321,7 +321,7 @@ async function esgProcess(c: Context) {
   }
 
   function checkWellWritten(state: typeof StateAnnotation.State) {
-    console.log('---PROCESS: CHECK WELL-WRITTEN---');
+    console.log('---  PROCESS: CHECK WELL-WRITTEN  ---');
     const messages = state.messages;
     const lastMessage = messages[messages.length - 1] as AIMessage;
     const toolCalls = lastMessage.tool_calls;
@@ -331,7 +331,7 @@ async function esgProcess(c: Context) {
     }
 
     if (toolCalls[0].args.isWellWritten === 'yes') {
-      console.log('---DECISION: TEXT WELL WRITTEN---');
+      console.log('---  DECISION: TEXT WELL WRITTEN  ---');
       return '__end__';
     }
     console.log('---DECISION: TEXT NOT WELL WRITTEN---');
@@ -341,7 +341,7 @@ async function esgProcess(c: Context) {
   async function regenerate(
     state: typeof StateAnnotation.State,
   ): Promise<Partial<typeof StateAnnotation.State>> {
-    console.log('---PROCESS: REGENERATE---');
+    console.log('---       PROCESS: REGENERATE     ---');
 
     const { messages, finalContents } = state;
     const query = messages[0].content as string;
@@ -355,12 +355,12 @@ async function esgProcess(c: Context) {
     const suggestion = toolCalls[0].args.suggestion as string;
 
     const prompt = ChatPromptTemplate.fromTemplate(
-      `The text generated based on the user's query from the sector database is poorly written. \n
+      `The text generated before based on the user's query is poorly written. \n
        Please rewrite it using the following information:\n
        User query: \n{query}\n
        Retrieved contents: \n{retrievedContents}\n
        Improvement suggestions: \n{suggestion}\n
-       Rewrite the text according to the suggestions.\n`,
+       Ensure that your rewrite directly addresses the improvement suggestions and enhances clarity, coherence, and overall quality of the text.\n`,
     );
 
     const model = new ChatOpenAI({
@@ -415,12 +415,8 @@ async function esgProcess(c: Context) {
     { messages: [new HumanMessage(query)] },
     { configurable: { thread_id: '42' } },
   );
-
-  console.log('---FINAL STATE---');
-  console.log(finalState.messages);
-  // console.log(finalState.messages[finalState.messages.length - 1].content);
-
-  return new Response(JSON.stringify(finalState, null, 2), {
+  console.log('---  FINAL STATE: TASK COMPLETED  ---');
+  return new Response(JSON.stringify(finalState.messages[finalState.messages.length - 2], null, 2), {
     headers: { 'Content-Type': 'application/json' },
   });
 }
