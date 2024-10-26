@@ -118,9 +118,14 @@ async function esgProcess(c: Context) {
     const { messages } = state;
     const tool = {
       name: 'evaluate_contents_relevance',
-      description: 'Give a binary score of relevance and provide suggestions to improve the retrieved content.',
+      description:
+        'Give a binary score of relevance and provide suggestions to improve the retrieved content.',
       schema: z.object({
-        relevanceScore: z.string().describe("Binary score: 'yes' if the majority of the content is relevant to the query, 'no' otherwise."),
+        relevanceScore: z
+          .string()
+          .describe(
+            "Binary score: 'yes' if the majority of the content is relevant to the query, 'no' otherwise.",
+          ),
         suggestion: z
           .string()
           .optional()
@@ -178,7 +183,7 @@ async function esgProcess(c: Context) {
       if (lastMessage.tool_calls[0].args.relevanceScore === 'yes') {
         console.log('---  DECISION: CONTENTS RELEVANT  ---');
         return 'generate';
-      } else {        
+      } else {
         console.log('---DECISION: CONTENTS NOT RELEVANT---');
         if (cycleCount === maxCycleCount) {
           console.log('---  DECISION: MAX CYCLE REACHED  ---');
@@ -203,7 +208,7 @@ async function esgProcess(c: Context) {
       Suggestions for improvement are provided below:\n 
       "{suggestion}"\n
       Based on these suggestions, design an improved query to retrieve more relevant information.\n
-      Only return the refined query.\n`
+      Only return the refined query.\n`,
     );
     // Grader
     const model = new ChatOpenAI({
@@ -416,9 +421,12 @@ async function esgProcess(c: Context) {
     { configurable: { thread_id: '42' } },
   );
   console.log('---  FINAL STATE: TASK COMPLETED  ---');
-  return new Response(JSON.stringify(finalState.messages[finalState.messages.length - 2], null, 2), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify(finalState.messages[finalState.messages.length - 2], null, 2),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    },
+  );
 }
 
 export default esgProcess;

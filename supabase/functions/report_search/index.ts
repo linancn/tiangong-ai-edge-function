@@ -1,8 +1,10 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
+import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
+import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
@@ -17,7 +19,8 @@ const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_report = Deno.env.get('PINECONE_NAMESPACE_REPORT') ?? '';
 
-const opensearch_node = Deno.env.get('OPENSEARCH_NODE') ?? '';
+const opensearch_region = Deno.env.get('OPENSEARCH_REGION') ?? '';
+const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
 const opensearch_index_name = Deno.env.get('OPENSEARCH_STANDARD_INDEX_NAME') ?? '';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
@@ -33,7 +36,16 @@ const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
 const opensearchClient = new Client({
-  node: opensearch_node,
+  ...AwsSigv4Signer({
+    region: opensearch_region,
+    service: 'aoss',
+
+    getCredentials: () => {
+      const credentialsProvider = defaultProvider();
+      return credentialsProvider();
+    },
+  }),
+  node: opensearch_domain,
 });
 
 // async function getMeta(supabase: SupabaseClient, id: string[]) {
@@ -151,6 +163,7 @@ const search = async (
   ]);
 
   // console.log(pineconeResponse);
+  // console.log(fulltextResponse);
 
   const id_set = new Set();
   const unique_docs = [];
