@@ -21,7 +21,7 @@ const pinecone_namespace_report = Deno.env.get('PINECONE_NAMESPACE_REPORT') ?? '
 
 const opensearch_region = Deno.env.get('OPENSEARCH_REGION') ?? '';
 const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
-const opensearch_index_name = Deno.env.get('OPENSEARCH_ESG_INDEX_NAME') ?? '';
+const opensearch_index_name = Deno.env.get('OPENSEARCH_REPORT_INDEX_NAME') ?? '';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
