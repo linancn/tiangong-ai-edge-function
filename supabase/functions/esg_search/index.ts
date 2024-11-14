@@ -244,7 +244,7 @@ const search = async (
   // console.log(fulltextResponse.body.hits.hits);
 
   const id_set = new Set();
-  const unique_docs = [];
+  let unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
@@ -252,6 +252,7 @@ const search = async (
     id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
+        sort_id: parseInt(doc.id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc.metadata.rec_id,
         page_number: doc.metadata.page_number,
         text: doc.metadata.text,
@@ -261,6 +262,7 @@ const search = async (
       });
     }
   }
+  // console.log(unique_docs);
 
   for (const doc of fulltextResponse.body.hits.hits) {
     const id = doc._id;
@@ -268,6 +270,7 @@ const search = async (
     if (!id_set.has(id)) {
       id_set.add(id);
       unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
         page_number: doc._source.page_number,
         text: doc._source.text,
@@ -301,10 +304,12 @@ const search = async (
     const filteredResponse = extFulltextResponse.body.docs.filter(
       (doc: { found: boolean }) => doc.found,
     );
-    console.log(filteredResponse);
+    // console.log(filteredResponse);
 
-    for (const doc of filteredResponse.body.docs) {
+    for (const doc of filteredResponse) {
+      // console.log(filteredResponse);
       unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
         page_number: doc._source.page_number,
         text: doc._source.text,
@@ -314,6 +319,7 @@ const search = async (
       });
     }
   }
+  // console.log(unique_docs);
 
   // const unique_doc_id_set = new Set<string>();
   // for (const doc of unique_docs) {
@@ -321,6 +327,28 @@ const search = async (
   // }
 
   // console.log(unique_doc_id_set);
+
+  const docMap: {
+    [key: string]: {
+      sort_id: number;
+      id: string;
+      text: string;
+      report_title: string;
+      company_name: string;
+      publication_date: number;
+      page_number: number;
+    };
+  } = {};
+  for (const doc of unique_docs) {
+    if (!docMap[doc.id]) {
+      docMap[doc.id] = { ...doc };
+    } else {
+      docMap[doc.id].text += '\n' + doc.text;
+    }
+  }
+  unique_docs = Object.values(docMap).sort((a, b) => a.sort_id - b.sort_id);
+
+  // console.log(unique_docs);
 
   const docList = unique_docs.map((doc) => {
     const report_title = doc.report_title;
