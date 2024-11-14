@@ -6,7 +6,7 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { SupabaseClient, createClient } from '@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -119,11 +119,26 @@ function filterToPCQuery(filters: FiltersType): PCFilter {
   };
 }
 
+function getIdRange(id: string, extK: number): Set<string> {
+  const idRange = new Set<string>();
+  const match = id.match(/_(\d+)$/);
+  if (match) {
+    const baseId = parseInt(match[1], 10);
+    for (let i = Math.max(0, baseId - extK); i <= baseId + extK; i++) {
+      if (i !== baseId) {
+        idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
+      }
+    }
+  }
+  return idRange;
+}
+
 const search = async (
   supabase: SupabaseClient,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
+  extK: number,
   meta_contains?: string,
   filter?: FilterType,
   datefilter?: DateFilterType,
@@ -251,6 +266,44 @@ const search = async (
     const id = doc._id;
 
     if (!id_set.has(id)) {
+      id_set.add(id);
+      unique_docs.push({
+        id: doc._source.rec_id,
+        page_number: doc._source.page_number,
+        text: doc._source.text,
+        report_title: doc._source.title,
+        company_name: doc._source.company_name,
+        publication_date: doc._source.publication_date,
+      });
+    }
+  }
+
+  if (extK > 0) {
+    const extend_ids = new Set();
+    for (const id of id_set) {
+      const idRange = getIdRange(id as string, extK);
+      for (const id of idRange) {
+        extend_ids.add(id);
+      }
+    }
+
+    for (const id of id_set) {
+      extend_ids.delete(id);
+    }
+
+    const extFulltextResponse = await opensearchClient.mget({
+      index: opensearch_index_name,
+      body: {
+        ids: [...extend_ids],
+      },
+    });
+
+    const filteredResponse = extFulltextResponse.body.docs.filter(
+      (doc: { found: boolean }) => doc.found,
+    );
+    console.log(filteredResponse);
+
+    for (const doc of filteredResponse.body.docs) {
       unique_docs.push({
         id: doc._source.rec_id,
         page_number: doc._source.page_number,
@@ -296,7 +349,7 @@ Deno.serve(async (req) => {
     return authResponse;
   }
 
-  const { query, filter, datefilter, meta_contains, topK = 5 } = await req.json();
+  const { query, filter, datefilter, meta_contains, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
 
   logInsert(req.headers.get('email') ?? '', Date.now(), 'esg_search', topK);
@@ -313,13 +366,16 @@ Deno.serve(async (req) => {
     res.semantic_query,
     [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
+    extK,
     meta_contains,
     filter,
     datefilter,
   );
   // console.log(result);
 
-  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(result), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 });
 
 /* To invoke locally:
