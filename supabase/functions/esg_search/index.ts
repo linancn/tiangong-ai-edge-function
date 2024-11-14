@@ -125,9 +125,7 @@ function getIdRange(id: string, extK: number): Set<string> {
   if (match) {
     const baseId = parseInt(match[1], 10);
     for (let i = Math.max(0, baseId - extK); i <= baseId + extK; i++) {
-      if (i !== baseId) {
-        idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
-      }
+      idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
     }
   }
   return idRange;
@@ -328,27 +326,47 @@ const search = async (
 
   // console.log(unique_doc_id_set);
 
-  const docMap: {
-    [key: string]: {
-      sort_id: number;
-      id: string;
-      text: string;
-      report_title: string;
-      company_name: string;
-      publication_date: number;
-      page_number: number;
-    };
-  } = {};
+  interface Document {
+    sort_id: number;
+    id: string;
+    page_number: number;
+    text: string;
+    report_title: string;
+    company_name: string;
+    publication_date: number;
+  }
+
+  const docMap: { [key: string]: Document[] } = {};
+
+  // 1. Group documents by `id` into docMap
   for (const doc of unique_docs) {
     if (!docMap[doc.id]) {
-      docMap[doc.id] = { ...doc };
-    } else {
-      docMap[doc.id].text += '\n' + doc.text;
+      docMap[doc.id] = [];
     }
+    docMap[doc.id].push(doc);
   }
-  unique_docs = Object.values(docMap).sort((a, b) => a.sort_id - b.sort_id);
 
-  // console.log(unique_docs);
+  // 2. Sort each group by sort_id and combine texts
+  const combinedDocs = Object.keys(docMap).map((id) => {
+    const docsForId = docMap[id];
+
+    // Sort documents for this id by sort_id
+    docsForId.sort((a, b) => a.sort_id - b.sort_id);
+
+    // Combine the text fields in order of ascending sort_id
+    const combinedText = docsForId.map((doc) => doc.text).join('\n');
+
+    // Create a new object representing the combined document
+    return {
+      ...docsForId[0], // Use the fields from the first doc as base
+      text: combinedText, // Overwrite the text field with combined text
+    };
+  });
+
+  // combinedDocs now contains merged documents, each group combined by id
+  unique_docs = combinedDocs;
+
+  console.log(unique_docs);
 
   const docList = unique_docs.map((doc) => {
     const report_title = doc.report_title;
