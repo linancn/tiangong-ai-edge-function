@@ -131,6 +131,16 @@ function getIdRange(id: string, extK: number): Set<string> {
   return idRange;
 }
 
+interface Document {
+  sort_id: number;
+  id: string;
+  page_number: number;
+  text: string;
+  report_title: string;
+  company_name: string;
+  publication_date: number;
+}
+
 const search = async (
   supabase: SupabaseClient,
   semantic_query: string,
@@ -242,7 +252,7 @@ const search = async (
   // console.log(fulltextResponse.body.hits.hits);
 
   const id_set = new Set();
-  let unique_docs = [];
+  const unique_docs = [];
 
   for (const doc of pineconeResponse.matches) {
     const id = doc.id;
@@ -326,49 +336,46 @@ const search = async (
 
   // console.log(unique_doc_id_set);
 
-  interface Document {
-    sort_id: number;
-    id: string;
-    page_number: number;
-    text: string;
-    report_title: string;
-    company_name: string;
-    publication_date: number;
-  }
-
-  const docMap: { [key: string]: Document[] } = {};
-
-  // 1. Group documents by `id` into docMap
-  for (const doc of unique_docs) {
-    if (!docMap[doc.id]) {
-      docMap[doc.id] = [];
-    }
-    docMap[doc.id].push(doc);
-  }
-
-  // 2. Sort each group by sort_id and combine texts
-  const combinedDocs = Object.keys(docMap).map((id) => {
-    const docsForId = docMap[id];
-
-    // Sort documents for this id by sort_id
-    docsForId.sort((a, b) => a.sort_id - b.sort_id);
-
-    // Combine the text fields in order of ascending sort_id
-    const combinedText = docsForId.map((doc) => doc.text).join('\n');
-
-    // Create a new object representing the combined document
-    return {
-      ...docsForId[0], // Use the fields from the first doc as base
-      text: combinedText, // Overwrite the text field with combined text
-    };
+  unique_docs.sort((a, b) => {
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return a.sort_id - b.sort_id;
   });
 
-  // combinedDocs now contains merged documents, each group combined by id
-  unique_docs = combinedDocs;
+  // **Optimized: Combine documents in a single pass**
+  const combinedDocs: Document[] = [];
+  let currentGroup: Document[] = [];
+  let currentId: string | null = null;
 
-  console.log(unique_docs);
+  for (const doc of unique_docs) {
+    if (doc.id !== currentId) {
+      if (currentGroup.length > 0) {
+        // Combine texts for the current group
+        const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+        combinedDocs.push({
+          ...currentGroup[0],
+          text: combinedText,
+        });
+      }
+      currentGroup = [doc];
+      currentId = doc.id;
+    } else {
+      currentGroup.push(doc);
+    }
+  }
 
-  const docList = unique_docs.map((doc) => {
+  // Handle the last group
+  if (currentGroup.length > 0) {
+    const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+    combinedDocs.push({
+      ...currentGroup[0],
+      text: combinedText,
+    });
+  }
+
+  // console.log(combinedDocs);
+
+  const docList = combinedDocs.map((doc) => {
     const report_title = doc.report_title;
     const company_name = doc.company_name;
     const publication_date = formatTimestampToDate(doc.publication_date);
