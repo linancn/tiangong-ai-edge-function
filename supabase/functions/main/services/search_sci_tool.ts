@@ -14,11 +14,12 @@ class SearchSciTool extends DynamicStructuredTool {
     super({
       name: 'Search_Sci_Tool',
       description:
-        'Call this tool to search the environmental vector database for specialized information.',
+        'Use this tool to perform semantic search on the academic database for precise and specialized information.',
       schema: z.object({
         query: z.string().min(1).describe('Requirements or questions from the user.'),
-        journal: z.array(z.string()).default([]).describe('journal name to filter the search.'),
-        topK: z.number().default(5).describe('Number of results to return.'),
+        journal: z.array(z.string()).optional().describe('Journal names to filter the search.'),
+        topK: z.number().default(5).describe('Number of top chunk results to return.'),
+        extK: z.number().optional().describe('Number of additional chunks to include before and after each topK result.'),
       }),
       func: async ({
         query,

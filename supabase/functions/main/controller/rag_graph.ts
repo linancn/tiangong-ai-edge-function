@@ -95,6 +95,9 @@ async function ragProcess(c: Context) {
   // Note that we're (optionally) passing the memory when compiling the graph
   const app = workflow.compile({ checkpointer });
 
+  // const mermaid = app.getGraph().drawMermaid();
+  // console.log(mermaid);
+
   // Use the Runnable
   const finalState = await app.invoke(
     { messages: [new HumanMessage(query)] },
