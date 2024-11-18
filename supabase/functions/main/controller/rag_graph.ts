@@ -8,7 +8,8 @@ import { StructuredToolInterface } from '@langchain/core/tools';
 import { Annotation, MemorySaver, StateGraph } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
-import { createClient } from '@supabase/supabase-js@2';
+import { createClient as createRedisClient } from '@redis/client';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js@2';
 import supabaseAuth from '../../_shared/supabase_auth.ts';
 import logInsert from '../../_shared/supabase_function_log.ts';
 import SearchEsgTool from '../services/search_esg_tool.ts';
@@ -18,15 +19,25 @@ const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABAS
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
+const redisClient = createRedisClient({
+  url: 'redis://localhost:6379',
+});
+await redisClient.connect();
+
+const supabase = createSupabaseClient(supabase_url, supabase_anon_key);
+
 async function ragProcess(c: Context) {
   const req = c.req;
   const email = req.header('email') ?? '';
   const password = req.header('password') ?? '';
 
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(supabase, email, password);
-  if (authResponse.status !== 200) {
-    return authResponse;
+  if ((await redisClient.get(email)) !== 'authenticated') {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redisClient.setEx(email, 3600, 'authenticated');
+    }
   }
 
   logInsert(email, Date.now(), 'rag_graph');
