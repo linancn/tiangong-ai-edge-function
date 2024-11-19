@@ -5,8 +5,7 @@
 ```bash
 
 sudo apt-get update && sudo apt-get install -y redis-server
-
-#optional
+# Optional
 redis-server --daemonize yes
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
@@ -17,6 +16,7 @@ curl -fsSL https://deno.land/install.sh | sh # Then manually add the deno direct
 
 npm install
 
+# Update Supabase CLI
 npm update supabase --save-dev
 
 deno cache --reload *.ts
