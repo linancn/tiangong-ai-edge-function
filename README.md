@@ -8,11 +8,11 @@ sudo apt-get update && sudo apt-get install -y redis-server
 # Optional
 redis-server --daemonize yes
 
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 nvm install 20
 nvm use
 
-curl -fsSL https://deno.land/install.sh | sh # Then manually add the deno directory to your $HOME/.zshrc (or similar)
+curl -fsSL https://deno.land/install.sh | sh -s v1.45.2 # Then manually add the deno directory to your $HOME/.zshrc (or similar)
 
 npm install
 
@@ -65,19 +65,15 @@ service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 ## Local Test
 
 ```bash
-
+# Start Supabase Edge Functions Server
 npm run start
-
-#equivalent to
+# equivalent to
 npx supabase functions serve --env-file ./supabase/.env.local
 
+# Start Deno Server for LangGrapgh
 deno run --allow-all --import-map supabase/functions/import_map.json --env --watch supabase/functions/main/index.ts
 
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_compliance' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-curl -i --location --request GET 'http://127.0.0.1:64321/functions/v1/main/health'
+curl -i --location --request GET 'http://localhost:8000/main/health'
 ```
 
 OR
