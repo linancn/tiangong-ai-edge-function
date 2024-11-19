@@ -7,7 +7,6 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
-import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -27,9 +26,6 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_ESG_INDEX_NAME') ?? '';
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-
-const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
-const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -53,11 +49,6 @@ const opensearchClient = new Client({
 });
 
 const supabase = createClient(supabase_url, supabase_anon_key);
-
-const redis = new Redis({
-  url: redis_url,
-  token: redis_token,
-});
 
 async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
   // console.log(full_text);
@@ -406,19 +397,15 @@ Deno.serve(async (req) => {
   const email = req.headers.get('email') ?? '';
   const password = req.headers.get('password') ?? '';
 
-  if (!(await redis.exists(email))) {
-    const authResponse = await supabaseAuth(supabase, email, password);
-    if (authResponse.status !== 200) {
-      return authResponse;
-    } else {
-      await redis.setex(email, 3600, '');
-    }
+  const authResponse = await supabaseAuth(supabase, email, password);
+  if (authResponse.status !== 200) {
+    return authResponse;
   }
 
   const { query, filter, datefilter, meta_contains, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
 
-  logInsert(req.headers.get('email') ?? '', Date.now(), 'esg_search', topK);
+  logInsert(email, Date.now(), 'esg_search', topK);
 
   const res = await generateQuery(query);
   // console.log(res);

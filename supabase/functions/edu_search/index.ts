@@ -48,6 +48,8 @@ const opensearchClient = new Client({
   node: opensearch_domain,
 });
 
+const supabase = createClient(supabase_url, supabase_anon_key);
+
 interface EduData {
   id: string;
   name: string;
@@ -225,12 +227,10 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  const authResponse = await supabaseAuth(supabase, email, password);
   if (authResponse.status !== 200) {
     return authResponse;
   }
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
   const { query, filter, topK = 5 } = await req.json();
   // console.log(query, filter);
 
-  logInsert(req.headers.get('email') ?? '', Date.now(), 'edu_search', topK);
+  logInsert(email, Date.now(), 'edu_search', topK);
 
   const res = await generateQuery(query);
   // console.log(res);
