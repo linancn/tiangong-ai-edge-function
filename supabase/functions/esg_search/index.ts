@@ -406,18 +406,13 @@ Deno.serve(async (req) => {
   const email = req.headers.get('email') ?? '';
   const password = req.headers.get('password') ?? '';
 
-  if ((await redis.get(email)) !== 'authenticated') {
+  if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
     if (authResponse.status !== 200) {
       return authResponse;
     } else {
-      await redis.setex(email, 3600, 'authenticated');
+      await redis.setex(email, 3600, '');
     }
-  }
-
-  const authResponse = await supabaseAuth(supabase, email, password);
-  if (authResponse.status !== 200) {
-    return authResponse;
   }
 
   const { query, filter, datefilter, meta_contains, topK = 5, extK = 0 } = await req.json();

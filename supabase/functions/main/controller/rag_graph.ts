@@ -31,12 +31,12 @@ async function ragProcess(c: Context) {
   const email = req.header('email') ?? '';
   const password = req.header('password') ?? '';
 
-  if ((await redisClient.get(email)) !== 'authenticated') {
+  if (!(await redisClient.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
     if (authResponse.status !== 200) {
       return authResponse;
     } else {
-      await redisClient.setEx(email, 3600, 'authenticated');
+      await redisClient.setEx(email, 3600, '');
     }
   }
 
