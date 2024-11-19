@@ -13,12 +13,16 @@ class SearchEsgTool extends DynamicStructuredTool {
   constructor({ email, password }: { email: string; password: string }) {
     super({
       name: 'Search_ESG_Tool',
-      description: 'Use this tool to perform semantic search on the ESG database for precise and specialized information.',
+      description:
+        'Use this tool to perform semantic search on the ESG database for precise and specialized information.',
       schema: z.object({
         query: z.string().min(1).describe('Requirements or questions from the user.'),
         docIds: z.array(z.string()).optional().describe('Document ids to filter the search.'),
         topK: z.number().default(5).describe('Number of top chunk results to return.'),
-        extK: z.number().optional().describe('Number of additional chunks to include before and after each topK result.'),
+        extK: z
+          .number()
+          .optional()
+          .describe('Number of additional chunks to include before and after each topK result.'),
       }),
       func: async ({ query, docIds, topK }: { query: string; docIds: string[]; topK: number }) => {
         const filter: FilterType = docIds.length > 0 ? { rec_id: { $in: docIds } } : {};

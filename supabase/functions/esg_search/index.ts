@@ -7,6 +7,7 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -27,6 +28,9 @@ const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABAS
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
+
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
   model: openai_embedding_model,
@@ -46,6 +50,13 @@ const opensearchClient = new Client({
     },
   }),
   node: opensearch_domain,
+});
+
+const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
 });
 
 async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
@@ -391,13 +402,20 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
-  // Get the session or user object
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
+
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  if ((await redis.get(email)) !== 'authenticated') {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, 'authenticated');
+    }
+  }
+
+  const authResponse = await supabaseAuth(supabase, email, password);
   if (authResponse.status !== 200) {
     return authResponse;
   }

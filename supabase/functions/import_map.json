@@ -15,6 +15,7 @@
     "@redis/client": "npm:/@redis/client",
     "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
     "@supabase/supabase-js@2": "jsr:@supabase/supabase-js@2",
+    "@upstash/redis": "npm:/@upstash/redis",
     "duck-duck-scrape": "npm:/duck-duck-scrape",
     "zod": "npm:/zod"
   }
