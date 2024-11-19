@@ -7,6 +7,7 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -26,6 +27,9 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_ESG_INDEX_NAME') ?? '';
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -49,6 +53,11 @@ const opensearchClient = new Client({
 });
 
 const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
+});
 
 async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
   // console.log(full_text);
@@ -145,6 +154,9 @@ interface Document {
 
 const search = async (
   supabase: SupabaseClient,
+  email: string,
+  password: string,
+  first_login: boolean,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
@@ -157,6 +169,10 @@ const search = async (
 
   let pgResponse = null;
   if (meta_contains) {
+    if (!first_login) {
+      await supabaseAuth(supabase, email, password);
+      // console.log('Re-authenticated');
+    }
     pgResponse = await getStandardsMeta(supabase, meta_contains);
   }
 
@@ -397,9 +413,16 @@ Deno.serve(async (req) => {
   const email = req.headers.get('email') ?? '';
   const password = req.headers.get('password') ?? '';
 
-  const authResponse = await supabaseAuth(supabase, email, password);
-  if (authResponse.status !== 200) {
-    return authResponse;
+  let first_login = false;
+
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+      first_login = true;
+    }
   }
 
   const { query, filter, datefilter, meta_contains, topK = 5, extK = 0 } = await req.json();
@@ -416,6 +439,9 @@ Deno.serve(async (req) => {
   // ]);
   const result = await search(
     supabase,
+    email,
+    password,
+    first_login,
     res.semantic_query,
     [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
@@ -430,21 +456,3 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json' },
   });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "采取了哪些减排措施?", "filter": {"reportId": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/esg_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "哪些公司使用了阿里云来帮助减排", "topK": 3}'
-*/
