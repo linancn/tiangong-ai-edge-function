@@ -113,9 +113,18 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
 
-### TextBook
+### TextBook local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/textbook_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
+
+### TextBook remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'

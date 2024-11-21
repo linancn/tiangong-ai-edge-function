@@ -112,7 +112,9 @@ npx supabase functions deploy patent_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy report_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy internet_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy standard_search --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy textbook_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm
+
 
 ```
