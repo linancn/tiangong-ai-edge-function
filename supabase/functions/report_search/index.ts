@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { query, filter, topK = 5,extK = 0 } = await req.json();
+  const { query, filter, topK = 5, extK = 0 } = await req.json();
 
   // console.log(query, filter);
 

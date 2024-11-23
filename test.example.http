@@ -203,3 +203,28 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/report_search' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"coastal floods and sandy coastline recession are projected to increase?", "topK": 3, "extK": 2}'
+
+============================================================
+Patent
+============================================================
+### @name patent—local：没有filter
+curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
+
+
+### @name patent—local：country_filter
+curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"]}, "topK": 1}'
+
+### @name patent—local：time_filter
+curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "datefilter": {"publication_date": {"gte": 1262304000}}, "topK": 3}'
