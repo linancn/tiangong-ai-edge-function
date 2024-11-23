@@ -83,6 +83,13 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'
 
+###Standard：扩展
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3, "extK": 2}'
+
 ### Internal_search：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
