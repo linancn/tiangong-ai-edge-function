@@ -128,3 +128,10 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' 
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
+
+### edu local
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程","大气污染控制工程"]},"topK": 1, "extK": 1}'
