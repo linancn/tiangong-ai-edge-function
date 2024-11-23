@@ -1,117 +1,113 @@
-### 
-curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
-    --header 'Content-Type: application/json' \
-    --header 'email: {{$dotenv EMAIL}}' \
-    --header 'password: {{$dotenv PASSWORD}}' \
-    --header 'x-region: {{$dotenv X_REGION}}' \
-    --data '{"query":"如何减排二氧化碳？"}'
-
-###
-curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
-    --header 'Content-Type: application/json' \
-    --header 'email: {{$dotenv EMAIL}}' \
-    --header 'password: {{$dotenv PASSWORD}}' \
-    --header 'x-region: {{$dotenv X_REGION}}' \
-    --data '{"query":"如何减排二氧化碳？"}'
-
-### ESG：没有filter
+============================================================
+ESG
+============================================================
+### @name ESG：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"如何减排二氧化碳？", "topK": 3}'
 
-###ESG：rec_id filter
+### @name ESG：rec_id_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "溫室氣體總排放量是多少？", "filter": {"rec_id": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "topK": 3}'
 
-###ESG：时间filter
+### @name ESG：时间filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "溫室氣體總排放量是多少？", "datefilter": {"publication_date": {"gte": 1677836800}}, "topK": 3}'
 
-
-###ESG：meta_contains
+### @name ESG：meta_contains
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "溫室氣體總排放量是多少？", "meta_contains":"太古", "topK": 3}'
 
-
-
-
-###Standard：时间和meta_contains filter
+============================================================
+Standard
+============================================================
+### @name Standard：时间和meta_contains_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？", "datefilter": {"effective_date": {"gte": 1077836800}},"meta_contains":"钢铁 大气","topK": 3}'
 
-###Standard：时间filter
+### @name Standard：时间filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？", "datefilter": {"effective_date": {"gte": 1377836800}},"topK": 3}'
 
-###Standard：filter
+### @name Standard：标准号filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["HJ 1131-2020", "HJ 57-2017"]},"topK": 3}'
 
-###Standard：meta_contains
+### @name Standard：meta_contains
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？", "meta_contains":"空气", "topK": 3}'
 
-###Standard：没有filter
+### @name Standard：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'
 
-###Standard：扩展
+### @name Standard：扩展
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3, "extK": 2}'
 
-### Internal_search：没有filter
+### @name Standard：remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/standard_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"二氧化硫一级浓度限值是多少？","topK": 3, "extK": 2}'
+
+============================================================
+Internal
+============================================================
+### @name Internal_search：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
 
-### Internal_search：id filter
+### @name Internal_search：id_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"rec_id": ["1722c59d-adda-4a1a-afd2-d656c1ef60bb","d878ab2b-17a5-4b71-a101-f9013a564309"]}, "topK": 3}'
 
-### Internal_search：tag filter
+### @name Internal_search：tag_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"tag": ["ali"]}, "topK": 3}'
 
-### Internal_search：deployed service
+### @name Internal_search：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -120,14 +116,17 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
 
-### TextBook local
+============================================================
+TextBook
+============================================================
+### @name TextBook：local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/textbook_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
 
-### TextBook remote
+### @name TextBook：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -136,14 +135,17 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
 
-### edu local
+============================================================
+Edu
+============================================================
+### @name edu：local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程","大气污染控制工程"]},"topK": 1, "extK": 1}'
 
-### edu remote
+### @name edu：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -152,36 +154,38 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程","大气污染控制工程"]},"topK": 1, "extK": 1}'
 
-### SCI local：没有filter
+============================================================
+SCI
+============================================================
+### @name SCI—local：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3}'
 
-### SCI local：没有filter
+### @name SCI—local：扩展
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3, "extK": 2}'
 
-### SCI local：有filter
+### @name SCI—local：journal_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "filter": {"journal": ["JOURNAL OF INDUSTRIAL ECOLOGY"]},"topK": 1}'
 
-
-### SCI：有filter
+### @name SCI：complete_metadata
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "datefilter": {"date": {"gte": 1262304000}},"topK": 1, "getMeta": true}'
 
-### SCI remote：没有filter
+### @name SCI—remote：没有filter
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -190,4 +194,12 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3, "extK": 2}'
 
-
+============================================================
+Report  
+============================================================
+### @name report—local：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/report_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"coastal floods and sandy coastline recession are projected to increase?", "topK": 3, "extK": 2}'
