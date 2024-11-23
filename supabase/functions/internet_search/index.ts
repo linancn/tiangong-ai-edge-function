@@ -2,13 +2,25 @@
 import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { createClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import DDG from 'duck-duck-scrape';
 import { corsHeaders } from '../_shared/cors.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
+
+const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
+});
 
 const search = async (query: string, maxResults: number = 3) => {
   try {
@@ -38,18 +50,22 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
-  if (authResponse.status !== 200) {
-    return authResponse;
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+    }
   }
 
   const { query, maxResults = 5 } = await req.json();
   // console.log(query, maxResults);
+
+  logInsert(email, Date.now(), 'internet_search', maxResults);
 
   const result = await search(query, maxResults);
   // console.log(result);

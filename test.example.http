@@ -6,7 +6,7 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
-    --data '{"query":"如何减排二氧化碳？", "topK": 3}'
+    --data '{"query":"如何减排二氧化碳？", "topK": 3, "extK": 2}'
 
 ### @name ESG：rec_id_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
@@ -121,7 +121,7 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' 
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
-    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3, "extK": 2}'
 
 ============================================================
 TextBook
@@ -244,3 +244,13 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
+
+============================================================
+Internet
+============================================================
+### @name internet—local
+curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/internet_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'

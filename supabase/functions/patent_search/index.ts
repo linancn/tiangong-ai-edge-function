@@ -11,6 +11,7 @@ import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
+import logInsert from '../_shared/supabase_function_log.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
@@ -267,6 +268,8 @@ Deno.serve(async (req) => {
 
   const { query, filter, datefilter, topK = 5 } = await req.json();
   // console.log(query, filter);
+
+  logInsert(email, Date.now(), 'patent_search', topK);
 
   const res = await generateQuery(query);
 
