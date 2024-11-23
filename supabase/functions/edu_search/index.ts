@@ -6,7 +6,8 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
+import { createClient} from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -26,6 +27,9 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_EDU_INDEX_NAME') ?? '';
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+  const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+  const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -50,33 +54,10 @@ const opensearchClient = new Client({
 
 const supabase = createClient(supabase_url, supabase_anon_key);
 
-interface EduData {
-  id: string;
-  name: string;
-  chapter_number: number;
-  description: string;
-}
-
-async function getEduMeta(supabase: SupabaseClient, id: string[]): Promise<EduData[] | null> {
-  const batchSize = 400;
-  let allData: EduData[] = [];
-
-  for (let i = 0; i < id.length; i += batchSize) {
-    const batch = id.slice(i, i + batchSize);
-    const { data, error } = await supabase
-      .from('edu_meta')
-      .select('id, name, chapter_number, description')
-      .in('id', batch);
-
-    if (error) {
-      console.error(error);
-      return null;
-    }
-
-    allData = allData.concat(data as EduData[]);
-  }
-  return allData;
-}
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
+});
 
 type FilterType = { course: string[] } | Record<string | number | symbol, never>;
 type PCFilter = {
@@ -90,11 +71,32 @@ function filterToPCQuery(filter: FilterType): PCFilter {
   return { $or: andConditions };
 }
 
+function getIdRange(id: string, extK: number): Set<string> {
+  const idRange = new Set<string>();
+  const match = id.match(/_(\d+)$/);
+  if (match) {
+    const baseId = parseInt(match[1], 10);
+    for (let i = Math.max(0, baseId - extK); i <= baseId + extK; i++) {
+      idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
+    }
+  }
+  return idRange;
+}
+
+interface Document {
+  sort_id: number;
+  id: string;
+  name: string;
+  chapter_number: number;
+  course: string;
+  text: string;
+}
+
 const search = async (
-  supabase: SupabaseClient,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
+  extK: number,
   filter: FilterType,
 ) => {
   // console.log(query, topK, filter);
@@ -176,8 +178,11 @@ const search = async (
     id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
+        sort_id: parseInt(doc.id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc.metadata.rec_id,
         course: doc.metadata.course,
+        name: doc.metadata.name,
+        chapter_number: doc.metadata.chapter_number,
         text: doc.metadata.text,
       });
     }
@@ -188,39 +193,101 @@ const search = async (
 
     if (!id_set.has(id)) {
       unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
         course: doc._source.course,
+        name: doc._source.name,
+        chapter_number: doc._source.chapter_number,
         text: doc._source.text,
       });
     }
   }
 
-  const unique_doc_id_set = new Set<string>();
-  for (const doc of unique_docs) {
-    unique_doc_id_set.add(doc.id);
+  if (extK > 0) {
+    const extend_ids = new Set();
+    for (const id of id_set) {
+      const idRange = getIdRange(id as string, extK);
+      for (const id of idRange) {
+        extend_ids.add(id);
+      }
+    }
+
+    for (const id of id_set) {
+      extend_ids.delete(id);
+    }
+
+    const extFulltextResponse = await opensearchClient.mget({
+      index: opensearch_index_name,
+      body: {
+        ids: [...extend_ids],
+      },
+    });
+
+    const filteredResponse = extFulltextResponse.body.docs.filter(
+      (doc: { found: boolean }) => doc.found,
+    );
+    // console.log(filteredResponse);
+
+    for (const doc of filteredResponse) {
+      // console.log(filteredResponse);
+      unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
+        id: doc._source.rec_id,
+        course: doc._source.course,
+        name: doc._source.name,
+        chapter_number: doc._source.chapter_number,
+        text: doc._source.text,
+      });
+    }
   }
 
-  // console.log(unique_doc_id_set);
+  unique_docs.sort((a, b) => {
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return a.sort_id - b.sort_id;
+  });
 
-  const pgResponse = await getEduMeta(supabase, Array.from(unique_doc_id_set));
+  const combinedDocs: Document[] = [];
+  let currentGroup: Document[] = [];
+  let currentId: string | null = null;
 
-  const docList = unique_docs.map((doc) => {
-    const record = pgResponse?.find((r: { id: string }) => r.id === doc.id);
-
-    if (record) {
-      const name = record.name;
-      const chapter_number = record.chapter_number;
-      const description = record.description;
-      const course = doc.course;
-      const source_entry = `${course}: **${name} (Ch. ${chapter_number})**. ${description}.`;
-      return { content: doc.text, source: source_entry };
+  for (const doc of unique_docs) {
+    if (doc.id !== currentId) {
+      if (currentGroup.length > 0) {
+        // Combine texts for the current group
+        const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+        combinedDocs.push({
+          ...currentGroup[0],
+          text: combinedText,
+        });
+      }
+      currentGroup = [doc];
+      currentId = doc.id;
     } else {
-      throw new Error('Record not found');
+      currentGroup.push(doc);
     }
+  }
+
+  // Handle the last group
+  if (currentGroup.length > 0) {
+    const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+    combinedDocs.push({
+      ...currentGroup[0],
+      text: combinedText,
+    });
+  }
+
+  const docList = combinedDocs.map((doc) => {
+    const course = doc.course;
+    const name = doc.name;
+    const chapter_number = doc.chapter_number;
+    const source_entry = `${course}: **${name} (Ch. ${chapter_number})**.`;
+    return { content: doc.text, source: source_entry };
   });
 
   return docList;
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -230,12 +297,16 @@ Deno.serve(async (req) => {
   const email = req.headers.get('email') ?? '';
   const password = req.headers.get('password') ?? '';
 
-  const authResponse = await supabaseAuth(supabase, email, password);
-  if (authResponse.status !== 200) {
-    return authResponse;
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+    }
   }
 
-  const { query, filter, topK = 5 } = await req.json();
+  const { query, filter, topK = 5, extK = 0  } = await req.json();
   // console.log(query, filter);
 
   logInsert(email, Date.now(), 'edu_search', topK);
@@ -243,10 +314,10 @@ Deno.serve(async (req) => {
   const res = await generateQuery(query);
   // console.log(res);
   const result = await search(
-    supabase,
     res.semantic_query,
     [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
+    extK,
     filter,
   );
   // console.log(result);

@@ -59,7 +59,7 @@ const redis = new Redis({
   token: redis_token,
 });
 
-async function getStandardsMeta(supabase: SupabaseClient, meta_contains: string) {
+async function getEsgMeta(supabase: SupabaseClient, meta_contains: string) {
   // console.log(full_text);
   const { data, error } = await supabase.rpc('esg_full_text', {
     meta_contains,
@@ -173,7 +173,7 @@ const search = async (
       await supabaseAuth(supabase, email, password);
       // console.log('Re-authenticated');
     }
-    pgResponse = await getStandardsMeta(supabase, meta_contains);
+    pgResponse = await getEsgMeta(supabase, meta_contains);
   }
 
   const searchVector = await openaiClient.embedQuery(semantic_query);
