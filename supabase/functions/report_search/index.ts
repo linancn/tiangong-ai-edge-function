@@ -7,6 +7,7 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -27,6 +28,9 @@ const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABAS
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
+
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
   model: openai_embedding_model,
@@ -46,6 +50,13 @@ const opensearchClient = new Client({
     },
   }),
   node: opensearch_domain,
+});
+
+const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
 });
 
 // async function getMeta(supabase: SupabaseClient, id: string[]) {
@@ -97,11 +108,34 @@ function filterToPCQuery(filters: FiltersType): PCFilter {
   };
 }
 
+function getIdRange(id: string, extK: number): Set<string> {
+  const idRange = new Set<string>();
+  const match = id.match(/_(\d+)$/);
+  if (match) {
+    const baseId = parseInt(match[1], 10);
+    for (let i = Math.max(0, baseId - extK); i <= baseId + extK; i++) {
+      idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
+    }
+  }
+  return idRange;
+}
+
+interface Document {
+  sort_id: number;
+  id: string;
+  organization: string;
+  title: string;
+  text: string;
+  url: string;
+  release_date: number;
+}
+
 const search = async (
   // supabase: SupabaseClient,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
+  extK: number,
   filter?: FilterType,
 ) => {
   const searchVector = await openaiClient.embedQuery(semantic_query);
@@ -174,6 +208,7 @@ const search = async (
     id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
+        sort_id: parseInt(doc.id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc.metadata.rec_id,
         organization: doc.metadata.organization,
         title: doc.metadata.title,
@@ -188,6 +223,7 @@ const search = async (
 
     if (!id_set.has(id)) {
       unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
         organization: doc._source.organization,
         title: doc._source.title,
@@ -202,8 +238,82 @@ const search = async (
   // for (const doc of unique_docs) {
   //   unique_doc_id_set.add(doc.id);
   // }
+  if (extK > 0) {
+    const extend_ids = new Set();
+    for (const id of id_set) {
+      const idRange = getIdRange(id as string, extK);
+      for (const id of idRange) {
+        extend_ids.add(id);
+      }
+    }
 
-  const docList = unique_docs.map((doc) => {
+    for (const id of id_set) {
+      extend_ids.delete(id);
+    }
+
+    const extFulltextResponse = await opensearchClient.mget({
+      index: opensearch_index_name,
+      body: {
+        ids: [...extend_ids],
+      },
+    });
+
+    const filteredResponse = extFulltextResponse.body.docs.filter(
+      (doc: { found: boolean }) => doc.found,
+    );
+    // console.log(filteredResponse);
+
+    for (const doc of filteredResponse) {
+      // console.log(filteredResponse);
+      unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
+        id: doc._source.rec_id,
+        organization: doc._source.organization,
+        title: doc._source.title,
+        release_date: doc._source.release_date,
+        text: doc._source.text,
+        url: doc._source.url,
+      });
+    }
+  }
+
+  unique_docs.sort((a, b) => {
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return a.sort_id - b.sort_id;
+  });
+
+  const combinedDocs: Document[] = [];
+  let currentGroup: Document[] = [];
+  let currentId: string | null = null;
+
+  for (const doc of unique_docs) {
+    if (doc.id !== currentId) {
+      if (currentGroup.length > 0) {
+        // Combine texts for the current group
+        const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+        combinedDocs.push({
+          ...currentGroup[0],
+          text: combinedText,
+        });
+      }
+      currentGroup = [doc];
+      currentId = doc.id;
+    } else {
+      currentGroup.push(doc);
+    }
+  }
+
+  // Handle the last group
+  if (currentGroup.length > 0) {
+    const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+    combinedDocs.push({
+      ...currentGroup[0],
+      text: combinedText,
+    });
+  }
+
+  const docList = combinedDocs.map((doc) => {
     const title = doc.title;
     const organization = doc.organization;
     const url = doc.url;
@@ -221,17 +331,19 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
-  if (authResponse.status !== 200) {
-    return authResponse;
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+    }
   }
 
-  const { query, filter, topK = 5 } = await req.json();
+  const { query, filter, topK = 5, extK = 0 } = await req.json();
 
   // console.log(query, filter);
 
@@ -244,6 +356,7 @@ Deno.serve(async (req) => {
     res.semantic_query,
     [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
+    extK,
     filter,
   );
   // console.log(result);
