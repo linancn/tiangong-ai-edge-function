@@ -162,7 +162,7 @@ const search = async (
         },
     size: topK,
   };
-  console.log(body.query);
+  // console.log(body.query);
 
   interface QueryOptions {
     vector: number[];
@@ -182,7 +182,7 @@ const search = async (
   if (filters) {
     queryOptions.filter = filterToPCQuery(filters);
   }
-  console.log(filters);
+  // console.log(filters);
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
     index.namespace(pinecone_namespace_patent).query(queryOptions),
@@ -192,8 +192,8 @@ const search = async (
     }),
   ]);
 
-  console.log(pineconeResponse);
-  console.log(fulltextResponse.body.hits.hits);
+  // console.log(pineconeResponse);
+  // console.log(fulltextResponse.body.hits.hits);
 
   const id_set = new Set();
   const unique_docs = [];
