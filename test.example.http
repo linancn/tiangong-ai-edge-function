@@ -91,7 +91,7 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
-    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3}'
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 1}'
 
 ### @name Internal_search：id_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
@@ -106,6 +106,13 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"tag": ["ali"]}, "topK": 3}'
+
+### @name Internal_search：扩展
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "filter": {"tag": ["ali"]}, "topK": 3, "extK": 2}'
 
 ### @name Internal_search：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' \
@@ -228,3 +235,12 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_se
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "Tunnel for high-speed vehicles?", "datefilter": {"publication_date": {"gte": 1262304000}}, "topK": 3}'
+
+### @name patent—remote：没有filter
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'

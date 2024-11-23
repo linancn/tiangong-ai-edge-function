@@ -1,10 +1,13 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
+import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
+import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -17,12 +20,16 @@ const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_internal = Deno.env.get('PINECONE_NAMESPACE_INTERNAL') ?? '';
 
-const opensearch_node = Deno.env.get('OPENSEARCH_NODE') ?? '';
+const opensearch_region = Deno.env.get('OPENSEARCH_REGION') ?? '';
+const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
 const opensearch_index_name = Deno.env.get('OPENSEARCH_INTERNAL_INDEX_NAME') ?? '';
 
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -33,7 +40,23 @@ const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
 
 const opensearchClient = new Client({
-  node: opensearch_node,
+  ...AwsSigv4Signer({
+    region: opensearch_region,
+    service: 'aoss',
+
+    getCredentials: () => {
+      const credentialsProvider = defaultProvider();
+      return credentialsProvider();
+    },
+  }),
+  node: opensearch_domain,
+});
+
+const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
 });
 
 type FilterType = { [field: string]: string[] };
@@ -64,10 +87,30 @@ function filterToPCQuery(filters: FiltersType): PCFilter {
   };
 }
 
+function getIdRange(id: string, extK: number): Set<string> {
+  const idRange = new Set<string>();
+  const match = id.match(/_(\d+)$/);
+  if (match) {
+    const baseId = parseInt(match[1], 10);
+    for (let i = Math.max(0, baseId - extK); i <= baseId + extK; i++) {
+      idRange.add(`${id.substring(0, id.lastIndexOf('_') + 1)}${i}`);
+    }
+  }
+  return idRange;
+}
+
+interface Document {
+  sort_id: number;
+  id: string;
+  title: string;
+  text: string;
+}
+
 const search = async (
   semantic_query: string,
   full_text_query: string[],
   topK: number,
+  extK: number,
   filter?: FilterType,
 ) => {
   // console.log(full_text_query, topK, filter);
@@ -153,6 +196,7 @@ const search = async (
     id_set.add(id);
     if (doc.metadata) {
       unique_docs.push({
+        sort_id: parseInt(doc.id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc.metadata.rec_id,
         text: doc.metadata.text,
         title: doc.metadata.title,
@@ -165,6 +209,7 @@ const search = async (
 
     if (!id_set.has(id)) {
       unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
         text: doc._source.text,
         title: doc._source.title,
@@ -178,8 +223,79 @@ const search = async (
   // }
 
   // console.log(unique_doc_id_set);
+  if (extK > 0) {
+    const extend_ids = new Set();
+    for (const id of id_set) {
+      const idRange = getIdRange(id as string, extK);
+      for (const id of idRange) {
+        extend_ids.add(id);
+      }
+    }
 
-  const docList = unique_docs.map((doc) => {
+    for (const id of id_set) {
+      extend_ids.delete(id);
+    }
+
+    const extFulltextResponse = await opensearchClient.mget({
+      index: opensearch_index_name,
+      body: {
+        ids: [...extend_ids],
+      },
+    });
+
+    const filteredResponse = extFulltextResponse.body.docs.filter(
+      (doc: { found: boolean }) => doc.found,
+    );
+    // console.log(filteredResponse);
+
+    for (const doc of filteredResponse) {
+      // console.log(filteredResponse);
+      unique_docs.push({
+        sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
+        id: doc._source.rec_id,
+        text: doc._source.text,
+        title: doc._source.title,
+      });
+    }
+  }
+
+  unique_docs.sort((a, b) => {
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return a.sort_id - b.sort_id;
+  });
+
+  const combinedDocs: Document[] = [];
+  let currentGroup: Document[] = [];
+  let currentId: string | null = null;
+
+  for (const doc of unique_docs) {
+    if (doc.id !== currentId) {
+      if (currentGroup.length > 0) {
+        // Combine texts for the current group
+        const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+        combinedDocs.push({
+          ...currentGroup[0],
+          text: combinedText,
+        });
+      }
+      currentGroup = [doc];
+      currentId = doc.id;
+    } else {
+      currentGroup.push(doc);
+    }
+  }
+
+  // Handle the last group
+  if (currentGroup.length > 0) {
+    const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+    combinedDocs.push({
+      ...currentGroup[0],
+      text: combinedText,
+    });
+  }
+
+  const docList = combinedDocs.map((doc) => {
     const title = doc.title;
     const source_entry = `**${title}**.`;
     return { content: doc.text, source: source_entry };
@@ -192,18 +308,20 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
-  // Get the session or user object
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
-  if (authResponse.status !== 200) {
-    return authResponse;
+
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+    }
   }
 
-  const { query, filter, topK = 5 } = await req.json();
+  const { query, filter, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
 
   logInsert(req.headers.get('email') ?? '', Date.now(), 'internal_search', topK);
@@ -219,6 +337,7 @@ Deno.serve(async (req) => {
     res.semantic_query,
     [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
+    extK,
     filter,
   );
   // console.log(result);
