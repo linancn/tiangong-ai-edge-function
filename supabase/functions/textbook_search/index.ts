@@ -6,7 +6,7 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { createClient} from '@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
@@ -411,4 +411,3 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json' },
   });
 });
-

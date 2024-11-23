@@ -6,7 +6,7 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
-import { createClient} from '@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
@@ -28,8 +28,8 @@ const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABAS
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-  const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
-  const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -288,7 +288,6 @@ const search = async (
   return docList;
 };
 
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -306,7 +305,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { query, filter, topK = 5, extK = 0  } = await req.json();
+  const { query, filter, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
 
   logInsert(email, Date.now(), 'edu_search', topK);
