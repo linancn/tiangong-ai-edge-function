@@ -7,6 +7,7 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
@@ -26,6 +27,9 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_SCI_INDEX_NAME') ?? '';
 const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
   Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const openaiClient = new OpenAIEmbeddings({
   apiKey: openai_api_key,
@@ -48,13 +52,20 @@ const opensearchClient = new Client({
   node: opensearch_domain,
 });
 
+const supabase = createClient(supabase_url, supabase_anon_key);
+
+const redis = new Redis({
+  url: redis_url,
+  token: redis_token,
+});
+
 interface JournalData {
   doi: string;
   title: string;
   authors: string[];
 }
 
-async function getMeta(supabase: SupabaseClient, doi: string[]): Promise<JournalData[] | null> {
+async function getMetadata(supabase: SupabaseClient, doi: string[]): Promise<JournalData[] | null> {
   const batchSize = 400;
   let allData: JournalData[] = [];
 
@@ -155,10 +166,14 @@ interface Document {
 
 const search = async (
   supabase: SupabaseClient,
+  email: string,
+  password: string,
+  first_login: boolean,
   semantic_query: string,
   full_text_query: string[],
   topK: number,
   extK: number,
+  getMeta?: boolean,
   filter?: FilterType,
   datefilter?: DateFilterType,
 ) => {
@@ -349,43 +364,61 @@ const search = async (
   // console.log(Array.from(uniqueIds));
   // console.log(uniqueIds);
 
-  const pgResponse = await getMeta(supabase, Array.from(uniqueIds));
-
-  const docList = combinedDocs.map((doc) => {
-    const record = pgResponse?.find((r: { doi: string }) => r.doi === doc.id);
-    // console.log(record);
-
-    if (record) {
-      const title = record.title;
-      const journal = doc.journal;
-      const authors = record.authors.join(', ');
-      const date = doc.date;
-      const url = `https://doi.org/${record.doi}`;
-      const sourceEntry = `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
-      return { content: doc.text, source: sourceEntry };
-    } else {
-      throw new Error('Record not found');
+  if (getMeta) {
+    if (!first_login) {
+      await supabaseAuth(supabase, email, password);
+      // console.log('Re-authenticated');
     }
-  });
 
-  return docList;
+    const pgResponse = await getMetadata(supabase, Array.from(uniqueIds));
+    const docList = combinedDocs.map((doc) => {
+      const record = pgResponse?.find((r: { doi: string }) => r.doi === doc.id);
+      // console.log(record);
+
+      if (record) {
+        const title = record.title;
+        const journal = doc.journal;
+        const authors = record.authors.join(', ');
+        const date = doc.date;
+        const url = `https://doi.org/${record.doi}`;
+        const sourceEntry = `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
+        return { content: doc.text, source: sourceEntry };
+      } else {
+        throw new Error('Record not found');
+      }
+    });
+    return docList;
+  } else {
+    const docList = combinedDocs.map((doc) => {
+      const url = `https://doi.org/${doc.id}`;
+      const sourceEntry = `${url}`;
+      return { content: doc.text, source: sourceEntry };
+    });
+    return docList;
+  }
 };
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
-  const supabase = createClient(supabase_url, supabase_anon_key);
-  const authResponse = await supabaseAuth(
-    supabase,
-    req.headers.get('email') ?? '',
-    req.headers.get('password') ?? '',
-  );
-  if (authResponse.status !== 200) {
-    return authResponse;
+
+  const email = req.headers.get('email') ?? '';
+  const password = req.headers.get('password') ?? '';
+
+  let first_login = false;
+
+  if (!(await redis.exists(email))) {
+    const authResponse = await supabaseAuth(supabase, email, password);
+    if (authResponse.status !== 200) {
+      return authResponse;
+    } else {
+      await redis.setex(email, 3600, '');
+      first_login = true;
+    }
   }
 
-  const { query, filter, datefilter, topK = 5, extK = 0 } = await req.json();
+  const { query, filter, datefilter, topK = 5, extK = 0, getMeta = false } = await req.json();
   // console.log(query, filter);
 
   logInsert(req.headers.get('email') ?? '', Date.now(), 'sci_search', topK);
@@ -394,10 +427,14 @@ Deno.serve(async (req) => {
 
   const result = await search(
     supabase,
+    email,
+    password,
+    first_login,
     res.semantic_query,
     [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
     topK,
     extK,
+    getMeta,
     filter,
     datefilter,
   );

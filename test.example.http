@@ -135,3 +135,52 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程","大气污染控制工程"]},"topK": 1, "extK": 1}'
+
+### edu remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程","大气污染控制工程"]},"topK": 1, "extK": 1}'
+
+### SCI local：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3}'
+
+### SCI local：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3, "extK": 2}'
+
+### SCI local：有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "filter": {"journal": ["JOURNAL OF INDUSTRIAL ECOLOGY"]},"topK": 1}'
+
+
+### SCI：有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "datefilter": {"date": {"gte": 1262304000}},"topK": 1, "getMeta": true}'
+
+### SCI remote：没有filter
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3, "extK": 2}'
+
+
