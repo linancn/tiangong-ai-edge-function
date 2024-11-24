@@ -215,7 +215,7 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/report_search' \
 Patent
 ============================================================
 ### @name patent—local：没有filter
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -223,14 +223,14 @@ curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_se
 
 
 ### @name patent—local：country_filter
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"]}, "topK": 1}'
 
 ### @name patent—local：time_filter
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -249,8 +249,17 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
 Internet
 ============================================================
 ### @name internet—local
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/internet_search' \
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internet_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
+
+### @name internet—remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
