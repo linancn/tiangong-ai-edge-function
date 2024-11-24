@@ -5,7 +5,13 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 
-function logInsert(email: string, invoked_at: number, service_type: string, top_k: number = 0) {
+function logInsert(
+  email: string,
+  invoked_at: number,
+  service_type: string,
+  top_k: number = 0,
+  ext_k = 0,
+) {
   const opensearch_region = Deno.env.get('OPENSEARCH_REGION') ?? '';
   const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
 
@@ -27,6 +33,7 @@ function logInsert(email: string, invoked_at: number, service_type: string, top_
     invoked_at,
     service_type,
     top_k,
+    ext_k,
   };
 
   opensearchClient

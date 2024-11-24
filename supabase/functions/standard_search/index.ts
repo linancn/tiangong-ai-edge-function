@@ -436,7 +436,7 @@ Deno.serve(async (req) => {
   const { query, filter, datefilter, meta_contains, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
 
-  logInsert(req.headers.get('email') ?? '', Date.now(), 'standard_search', topK);
+  logInsert(email, Date.now(), 'standard_search', topK, extK);
 
   const res = await generateQuery(query);
   // console.log(res);
