@@ -16,7 +16,7 @@ import logInsert from '../_shared/supabase_function_log.ts';
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
-const pinecone_api_key = Deno.env.get('PINECONE_API_KEY') ?? '';
+const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
 const pinecone_index_name = Deno.env.get('PINECONE_INDEX_NAME') ?? '';
 const pinecone_namespace_sci = Deno.env.get('PINECONE_NAMESPACE_SCI') ?? '';
 
