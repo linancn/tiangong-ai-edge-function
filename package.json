@@ -4,8 +4,8 @@
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
   "devDependencies": {
-    "prettier": "^3.4.0",
+    "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "supabase": "^1.223.10"
+    "supabase": "^2.0.0"
   }
 }
