@@ -222,6 +222,7 @@ const search = async (
     const id = doc._id;
 
     if (!id_set.has(id)) {
+      id_set.add(id);
       unique_docs.push({
         sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
         id: doc._source.rec_id,
