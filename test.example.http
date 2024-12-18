@@ -281,3 +281,22 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' 
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
+
+============================================================
+Edu Graph Search
+============================================================
+### @name edu-graph-local
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"大气污染控制", "root": 1, "depth": 1}'
+
+### @name edu-graph-remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"大气污染控制", "root": 1, "depth": 2}'
