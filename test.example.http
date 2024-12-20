@@ -285,14 +285,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' 
 ============================================================
 Edu Graph Search
 ============================================================
-### @name edu-graph-local
+### @name edu—graph—local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"大气污染控制", "root": 1, "depth": 1}'
 
-### @name edu-graph-remote
+### @name edu—graph—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -304,14 +304,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search'
 ============================================================
 Tavily Search
 ============================================================
-### @name search-tavily—local
+### @name tavily—search—local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 1}'
 
-### @name search-tavily—remote
+### @name tavily—search—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -323,14 +323,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
 ============================================================
 Tavily Extract
 ============================================================
-### @name search-tavily—local
+### @name tavily—extract—local
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_extract' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
 
-### @name search-tavily—remote
+### @name tavily—extract—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \

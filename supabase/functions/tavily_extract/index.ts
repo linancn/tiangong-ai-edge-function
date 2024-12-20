@@ -60,15 +60,14 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { urls } = await req.json();
-  const urls_json = JSON.parse(urls);
-  const numberOfUrls = urls_json.length;
+  const urlsJson = JSON.parse((await req.json()).urls);
+  const numberOfUrls = urlsJson.length;
   // console.log(urls_json);
   // console.log(numberOfUrls);
 
   logInsert(email, Date.now(), 'tavily_extract', numberOfUrls);
 
-  const result = await extract(urls_json);
+  const result = await extract(urlsJson);
   // console.log(result);
 
   return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
