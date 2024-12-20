@@ -458,33 +458,3 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
-      --header 'Content-Type: application/json' \
-      --header 'email: YourEmail' \
-      --header 'password: YourPassword' \
-      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["HJ 1131-2020", "HJ 57-2017"]}, "meta_contains":"钢铁 大气","topK": 3}'
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
-      --header 'Content-Type: application/json' \
-      --header 'email: YourEmail' \
-      --header 'password: YourPassword' \
-      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"standard_number": ["GB 28662-2012", "GB 28662-2012修"]}, "meta_contains":"钢铁 大气","topK": 3}'
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
-      --header 'Content-Type: application/json' \
-      --header 'email: YourEmail' \
-      --header 'password: YourPassword' \
-      --data '{"query": "二氧化硫一级浓度限值是多少？", "meta_contains":"钢铁 大气","topK": 3}'
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/standard_search' \
-      --header 'Content-Type: application/json' \
-      --header 'email: YourEmail' \
-      --header 'password: YourPassword' \
-      --data '{"query": "二氧化硫一级浓度限值是多少？", "filter": {"rec_id": ["20b4e646-2b49-4b27-8e60-e53ab659ba25","8c44a081-4f75-407b-93b6-67fda5e35d1d"]}, "topK": 3}'
-*/

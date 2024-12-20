@@ -2,8 +2,8 @@
 import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { createClient } from '@supabase/supabase-js@2';
+import { tavily } from '@tavily/core';
 import { Redis } from '@upstash/redis';
-import { search as DDGSearch, SafeSearchType } from 'duck-duck-scrape';
 import { corsHeaders } from '../_shared/cors.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
@@ -15,6 +15,10 @@ const supabase_anon_key =
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
 const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
+const tavily_api_key = Deno.env.get('TAVILY_API_KEY') ?? '';
+
+const tvly = tavily({ apiKey: tavily_api_key });
+
 const supabase = createClient(supabase_url, supabase_anon_key);
 
 const redis = new Redis({
@@ -22,25 +26,18 @@ const redis = new Redis({
   token: redis_token,
 });
 
-const search = async (query: string, maxResults: number = 3) => {
+const search = async (query: string, maxResults: number = 5) => {
   try {
     // console.log('Searching:', query);
-    const searchResults = await DDGSearch(query, {
-      safeSearch: SafeSearchType.STRICT,
-    });
+    const searchResults = await tvly.search(query, { maxResults });
     // console.log(searchResults);
 
-    if (Array.isArray(searchResults.results)) {
-      const results = searchResults.results.slice(0, maxResults);
-      const markdownList = results.map((item) => {
-        const content = item.description;
-        const source = `![icon](${item.icon})${item.title} [(${item.hostname})](${item.url})`;
-        return { content, source };
-      });
-      return markdownList;
-    } else {
-      return [];
-    }
+    const markdownList = searchResults.results.map((item) => {
+      const content = item.content;
+      const source = `[${item.title}](${item.url})`;
+      return { content, source };
+    });
+    return markdownList;
   } catch (error) {
     console.error('Search error:', error);
     return [];
@@ -67,7 +64,7 @@ Deno.serve(async (req) => {
   const { query, maxResults = 5 } = await req.json();
   // console.log(query, maxResults);
 
-  logInsert(email, Date.now(), 'internet_search', maxResults);
+  logInsert(email, Date.now(), 'tavily_search', maxResults);
 
   const result = await search(query, maxResults);
   // console.log(result);

@@ -300,3 +300,22 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search'
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"大气污染控制", "root": 1, "depth": 2}'
+
+============================================================
+Search Tavily
+============================================================
+### @name search-tavily—local
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 1}'
+
+### @name search-tavily—remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'

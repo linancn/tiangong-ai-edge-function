@@ -328,22 +328,3 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json' },
   });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "topK": 3}'
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/edu_search' \
-    --header 'Content-Type: application/json' \
-    --header 'x-password: XXX' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "what is the relationship between filter layer expansion and washing intensity?", "filter": {"course": ["水处理工程"]}, "topK": 3}'
-*/

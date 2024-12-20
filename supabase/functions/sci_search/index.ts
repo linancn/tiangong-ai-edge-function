@@ -444,15 +444,3 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json' },
   });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/sci_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "关键金属物质流的全球贸易特征是什么?", "filter": {"journal": ["JOURNAL OF INDUSTRIAL ECOLOGY"]}, "topK": 3}'
-*/

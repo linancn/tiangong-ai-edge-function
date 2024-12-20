@@ -118,11 +118,3 @@ Deno.serve(async (req) => {
     headers: { 'Content-Type': 'application/json' },
   });
 });
-
-/* To invoke locally:
-curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/question_generation' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "危险废物固化稳定化处理技术"}'
-*/

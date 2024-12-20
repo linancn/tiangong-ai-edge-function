@@ -16,6 +16,7 @@
     "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
     "@supabase/supabase-js@2": "jsr:@supabase/supabase-js@2",
     "@upstash/redis": "npm:/@upstash/redis",
+    "@tavily/core": "npm:/@tavily/core",
     "duck-duck-scrape": "npm:/duck-duck-scrape",
     "neo4j-driver": "https://deno.land/x/neo4j_driver_lite@5.27.0/mod.ts",
     "zod": "npm:/zod"

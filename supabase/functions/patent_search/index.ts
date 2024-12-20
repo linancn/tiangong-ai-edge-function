@@ -284,15 +284,3 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:64321/functions/v1/patent_search' \
-    --header 'Content-Type: application/json' \
-    --header 'email: xxx' \
-    --header 'password: xxx' \
-    --data '{"query": "Tunnel for high-speed vehicles?", "filter": {"country": ["Japan"], "publication_date": {"$gte": 19900101}}, "topK": 3}'
-*/
