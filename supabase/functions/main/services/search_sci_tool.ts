@@ -49,7 +49,7 @@ class SearchSciTool extends DynamicStructuredTool {
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${
-                Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+                Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? ''
               }`,
               email: this.email,
               password: this.password,

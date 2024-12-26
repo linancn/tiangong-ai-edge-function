@@ -11,9 +11,9 @@ import logInsert from '../_shared/supabase_function_log.ts';
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
 
-const supabase_url = Deno.env.get('LOCAL_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const supabase_url = Deno.env.get('SUPABASE_URL') ?? Deno.env.get('REMOTE_SUPABASE_URL') ?? '';
 const supabase_anon_key =
-  Deno.env.get('LOCAL_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? '';
 
 const model = new ChatOpenAI({
   model: openai_chat_model,
