@@ -15,9 +15,9 @@ import logInsert from '../../_shared/supabase_function_log.ts';
 import SearchEsgTool from '../services/search_esg_tool.ts';
 import SearchInternetTool from '../services/search_internet_tool.ts';
 
-const supabase_url = Deno.env.get('SUPABASE_URL') ?? Deno.env.get('REMOTE_SUPABASE_URL') ?? '';
+const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
-  Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? '';
+  Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 const redisClient = createRedisClient({
   url: 'redis://localhost:6379',

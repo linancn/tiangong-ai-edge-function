@@ -24,9 +24,9 @@ const opensearch_region = Deno.env.get('OPENSEARCH_REGION') ?? '';
 const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
 const opensearch_index_name = Deno.env.get('OPENSEARCH_REPORT_INDEX_NAME') ?? '';
 
-const supabase_url = Deno.env.get('SUPABASE_URL') ?? Deno.env.get('REMOTE_SUPABASE_URL') ?? '';
+const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
-  Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? '';
+  Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
 const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';

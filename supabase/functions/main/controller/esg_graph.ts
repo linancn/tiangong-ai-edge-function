@@ -17,9 +17,9 @@ import SearchEsgTool from '../services/search_esg_tool.ts';
 import SearchInternalTool from '../services/search_internal_tool.ts';
 import SearchInternetTool from '../services/search_internet_tool.ts';
 
-const supabase_url = Deno.env.get('SUPABASE_URL') ?? Deno.env.get('REMOTE_SUPABASE_URL') ?? '';
+const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_anon_key =
-  Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? '';
+  Deno.env.get('REMOTE_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 async function esgProcess(c: Context) {
   const req = c.req;
