@@ -338,3 +338,15 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
+
+============================================================
+Edu Graph Generate
+============================================================
+### @name edu-graph-generate_
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generate' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
