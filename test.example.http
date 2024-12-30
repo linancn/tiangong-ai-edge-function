@@ -343,6 +343,13 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
 Edu Graph Generate
 ============================================================
 ### @name edu-graph-generate_
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_generate' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
+
+### @name edu-graph-generate_
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generate' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
