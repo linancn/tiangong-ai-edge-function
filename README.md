@@ -114,9 +114,9 @@ npx supabase functions deploy internet_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy standard_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy textbook_search --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy tavily_search --project-ref qyyqlnwqwgvzxnccnbgm
+
 npx supabase functions deploy tavily_extract --project-ref qyyqlnwqwgvzxnccnbgm
+npx supabase functions deploy edu_graph_generate --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm
-
-
 ```
