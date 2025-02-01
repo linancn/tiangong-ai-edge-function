@@ -15,8 +15,9 @@ nvm use
 curl -fsSL https://deno.land/install.sh | sh -s v1.45.2 # Then manually add the deno directory to your $HOME/.zshrc (or similar)
 
 npm install
+
 # Update packages
-npm update
+npm update && npm ci
 
 deno cache --reload *.ts
 
