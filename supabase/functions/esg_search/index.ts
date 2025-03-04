@@ -12,6 +12,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
+import decodeApiKey from '../_shared/decode_api_key.ts';
 
 const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
@@ -410,10 +411,27 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const email = req.headers.get('email') ?? '';
-  const password = req.headers.get('password') ?? '';
+  let email = req.headers.get('email') ?? '';
+  let password = req.headers.get('password') ?? '';
+
+  const apiKey = req.headers.get('x-api-key') ?? '';
+
+  if (apiKey && (!email || !password)) {
+    try {
+      const credentials = decodeApiKey(apiKey);
+      if (!email) email = credentials.email ?? '';
+      if (!password) password = credentials.password ?? '';
+    } catch (_error) {
+      return new Response(JSON.stringify({ error: 'Invalid API KEY' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   let first_login = false;
+
+  console.log(email, password);
 
   if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);

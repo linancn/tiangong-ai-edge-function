@@ -68,7 +68,7 @@ service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZ
 # Start Supabase Edge Functions Server
 npm run start
 # equivalent to
-npx supabase functions serve --env-file ./supabase/.env.local
+npx supabase functions serve --env-file ./supabase/.env.local --no-verify-jwt
 
 # Start Deno Server for LangGrapgh
 deno run --allow-all --import-map supabase/functions/import_map.json --env --watch supabase/functions/main/index.ts
@@ -120,4 +120,10 @@ npx supabase functions deploy tavily_extract --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy edu_graph_generate --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm
+```
+
+## API KEY GENERATION
+
+```bash
+echo -n '{"email": "your_email@example.com", "password": "your_password"}' | base64 -w 0 && echo
 ```
