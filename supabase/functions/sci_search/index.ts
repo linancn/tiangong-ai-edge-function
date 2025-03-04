@@ -10,7 +10,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
-import generateQuery from '../_shared/generate_query.ts';
+import generateQuery from '../_shared/generate_query_en.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
