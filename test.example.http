@@ -205,7 +205,7 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
 ### @name SCI—local：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
-    --header 'x-api-key: {{$dotenv X-API-KEY}}' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3}'
 
 ### @name SCI—local：扩展
