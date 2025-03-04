@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
     password,
     first_login,
     res.semantic_query,
-    [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
+    [...res.fulltext_query_eng],
     topK,
     extK,
     getMeta,

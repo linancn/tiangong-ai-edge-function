@@ -30,38 +30,16 @@ const querySchema = {
         type: 'string',
       },
     },
-    fulltext_query_chi_sim: {
-      title: 'FulltextQueryChiSim',
-      description:
-        'A query list for full-text search in Simplified Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_tra: {
-      title: 'FulltextQueryChiTra',
-      description:
-        'A query list for full-text search in Traditional Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
   },
   required: [
     'semantic_query',
     'fulltext_query_eng',
-    'fulltext_query_chi_sim',
-    'fulltext_query_chi_tra',
   ],
 };
 
 interface QueryResponse {
   semantic_query: string;
   fulltext_query_eng: string[];
-  fulltext_query_chi_sim: string[];
-  fulltext_query_chi_tra: string[];
 }
 
 const modelWithStructuredOutput = model.withStructuredOutput(querySchema);
@@ -69,7 +47,7 @@ const modelWithStructuredOutput = model.withStructuredOutput(querySchema);
 const prompt = ChatPromptTemplate.fromMessages([
   [
     'system',
-    `Task: Transform original query into four specific queries: SemanticQuery, FulltextQueryENG, FulltextQueryChiSim and FulltextQueryChiTra.`,
+    `Task: Transform original query into two specific queries: SemanticQuery and FulltextQueryENG.`,
   ],
   ['human', 'Original query: {input}'],
 ]);

@@ -121,9 +121,3 @@ npx supabase functions deploy edu_graph_generate --project-ref qyyqlnwqwgvzxnccn
 npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm
 npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm
 ```
-
-## API KEY GENERATION
-
-```bash
-echo -n '{"email": "your_email@example.com", "password": "your_password"}' | base64 -w 0 && echo
-```
