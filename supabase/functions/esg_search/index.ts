@@ -415,14 +415,16 @@ Deno.serve(async (req) => {
   let password = req.headers.get('password') ?? '';
 
   const apiKey = req.headers.get('x-api-key') ?? '';
+  // console.log(apiKey);
 
   if (apiKey && (!email || !password)) {
-    try {
-      const credentials = decodeApiKey(apiKey);
-      if (!email) email = credentials.email ?? '';
-      if (!password) password = credentials.password ?? '';
-    } catch (_error) {
-      return new Response(JSON.stringify({ error: 'Invalid API KEY' }), {
+    const credentials = decodeApiKey(apiKey);
+    
+    if (credentials) {
+      if (!email) email = credentials.email;
+      if (!password) password = credentials.password;
+    } else {
+      return new Response(JSON.stringify({ error: 'Invalid API Key' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -431,7 +433,7 @@ Deno.serve(async (req) => {
 
   let first_login = false;
 
-  console.log(email, password);
+  // console.log(email, password);
 
   if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
