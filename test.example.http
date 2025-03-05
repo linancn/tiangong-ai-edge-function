@@ -90,6 +90,12 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'
 
+### @name Standard：x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query": "二氧化硫一级浓度限值是多少？","topK": 3}'
+
 ### @name Standard：扩展
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
     --header 'Content-Type: application/json' \
@@ -106,6 +112,13 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/standard_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"二氧化硫一级浓度限值是多少？","topK": 3, "extK": 2}'
 
+### @name Standard：remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/standard_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"二氧化硫一级浓度限值是多少？","topK": 3, "extK": 2}'
+
 ============================================================
 Internal
 ============================================================
@@ -114,6 +127,12 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 1}'
+
+### @name Internal_search：x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 1}'
 
 ### @name Internal_search：id_filter
@@ -146,6 +165,13 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3, "extK": 2}'
 
+### @name Internal_search：remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"闲鱼如何减排二氧化碳？", "topK": 3, "extK": 2}'
+
 ============================================================
 TextBook
 ============================================================
@@ -165,6 +191,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' 
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
 
+### @name TextBook：remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"如何减排二氧化碳？", "filter": {"isbn_number": ["9787030641274"]},"topK": 1, "extK": 1}'
+
+
 ============================================================
 Edu
 ============================================================
@@ -182,6 +216,11 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "topK": 5}'
 
+### @name edu：local, x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"what is the relationship between filter layer expansion and washing intensity?", "topK": 5}'
 
 ### @name edu：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
@@ -192,6 +231,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"what is the relationship between filter layer expansion and washing intensity?","topK": 10}'
 
+### @name edu：remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"what is the relationship between filter layer expansion and washing intensity?","topK": 10}'
+
+
 ============================================================
 SCI
 ============================================================
@@ -200,13 +247,13 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
-    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3}'
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 5}'
 
 ### @name SCI—local：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
     --header 'Content-Type: application/json' \
     --header 'x-api-key: {{$dotenv X_API_KEY}}' \
-    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 3}'
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 5}'
 
 ### @name SCI—local：扩展
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
@@ -236,7 +283,15 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
-    --data '{"query":"In conclusion, this study demonstrates the application of artificial intelligence (AI) techniques, machine learning (ML), deep learning (DL), CNN, GNN, long short-term memory (LSTM), and transformer models, in addressing environmental challenges. We proposed that AI-based models can significantly improve the prediction, classification, and management efficient. The proposed model shows significant improvements in prediction accuracy and computational efficiency. Additionally, its ability to generalize well to various datasets highlights its versatility. Overall, the model offers an innovative solution for automative pollution control and lays a solid foundation for future developments.", "topK": 50}'
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 5}'
+
+
+### @name SCI—remote：x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"关键金属物质流的全球贸易特征是什么?", "topK": 5}'
 
 ============================================================
 Report  
@@ -248,6 +303,20 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/report_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"coastal floods and sandy coastline recession are projected to increase?", "topK": 3, "extK": 2}'
 
+### @name report—local：x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/report_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"coastal floods and sandy coastline recession are projected to increase?", "topK": 3, "extK": 2}'
+
+### @name report—remote：x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/report_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query": "coastal floods and sandy coastline recession are projected to increase?", "topK": 1}'
+
+
 ============================================================
 Patent
 ============================================================
@@ -256,6 +325,12 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
+
+### @name patent—local：x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
 
 
@@ -282,6 +357,14 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
 
+
+### @name patent—remote：x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query": "Tunnel for high-speed vehicles?", "topK": 1}'
+
 ============================================================
 Internet
 ============================================================
@@ -292,12 +375,27 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internet_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
 
+### @name internet—local:x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internet_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
+
+
 ### @name internet—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
+
+
+### @name internet—remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
 
@@ -311,12 +409,25 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_search' 
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"大气污染控制", "root": 1, "depth": 1}'
 
+### @name edu—graph—local：x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"大气污染控制", "root": 1, "depth": 1}'
+
 ### @name edu—graph—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"大气污染控制", "root": 1, "depth": 2}'
+
+### @name edu—graph—remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"大气污染控制", "root": 1, "depth": 2}'
 
@@ -330,12 +441,26 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_search' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 1}'
 
+### @name tavily—search—local，x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 1}'
+
+
 ### @name tavily—search—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
+
+### @name tavily—search—remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"哪些公司使用了阿里云来帮助减排？", "maxResults": 2}'
 
@@ -349,12 +474,26 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_extract' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
 
+### @name tavily—extract—local,x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_extract' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
+
+
 ### @name tavily—extract—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
+
+### @name tavily—extract—remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"urls":"[\"https://www.baidu.com\",\"https://www.163.com\"]"}'
 
@@ -368,6 +507,12 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_generate
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
 
+### @name edu-graph-generate_：local,x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_generate' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
+
 ### @name edu-graph-generate_
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generate' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
@@ -376,3 +521,43 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generat
     --header 'password: {{$dotenv PASSWORD}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
+
+### @name edu-graph-generate_,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generate' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"海岸带资源环境调控", "root": 1, "depth": 2}'
+
+
+============================================================
+Green_Deal_Search
+============================================================
+### @name Green_deal_search：没有filter
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/green_deal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 1}'
+
+### @name Green_deal_search-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/green_deal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 1, "extK": 1}'
+
+### @name Green_deal_search：remote
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 3, "extK": 2}'
+
+### @name Green_deal_search：remote,x-api-key
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 3, "extK": 2}'

@@ -9,6 +9,7 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
+import decodeApiKey from '../_shared/decode_api_key.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
@@ -296,8 +297,27 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const email = req.headers.get('email') ?? '';
-  const password = req.headers.get('password') ?? '';
+  let email = req.headers.get('email') ?? '';
+  let password = req.headers.get('password') ?? '';
+
+  const apiKey = req.headers.get('x-api-key') ?? '';
+  // console.log(apiKey);
+
+  if (apiKey && (!email || !password)) {
+    const credentials = decodeApiKey(apiKey);
+
+    if (credentials) {
+      if (!email) email = credentials.email;
+      if (!password) password = credentials.password;
+    } else {
+      return new Response(JSON.stringify({ error: 'Invalid API Key' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  let first_login = false;
 
   if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
@@ -305,8 +325,9 @@ Deno.serve(async (req) => {
       return authResponse;
     } else {
       await redis.setex(email, 3600, '');
+      first_login = true;
     }
-  }
+}
 
   const { query, filter, topK = 5, extK = 0 } = await req.json();
   // console.log(query, filter);
