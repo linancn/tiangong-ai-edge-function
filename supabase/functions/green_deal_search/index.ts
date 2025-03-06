@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
-import generateQuery from '../_shared/generate_query.ts';
+import generateQuery from '../_shared/generate_query_en.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  let first_login = false;
+  // let first_login = false;
 
   if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
@@ -367,7 +367,7 @@ Deno.serve(async (req) => {
       return authResponse;
     } else {
       await redis.setex(email, 3600, '');
-      first_login = true;
+      // first_login = true;
     }
   }
 
@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
   // ]);
   const result = await search(
     res.semantic_query,
-    [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
+    [...res.fulltext_query_eng],
     topK,
     extK,
     filter,
