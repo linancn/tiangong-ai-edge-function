@@ -533,20 +533,20 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generat
 ============================================================
 Green_Deal_Search
 ============================================================
-### @name Green_deal_search：没有filter
+### @name green_deal_search：没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/green_deal_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
     --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 1}'
 
-### @name Green_deal_search-api-key
+### @name green_deal_search-api-key
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/green_deal_search' \
     --header 'Content-Type: application/json' \
     --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 1, "extK": 1}'
 
-### @name Green_deal_search：remote
+### @name green_deal_search：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
@@ -555,7 +555,7 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 3, "extK": 2}'
 
-### @name Green_deal_search：remote,x-api-key
+### @name green_deal_search：remote,x-api-key
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search' \
     --header 'Content-Type: application/json' \
     --header 'x-api-key: {{$dotenv X_API_KEY}}' \
