@@ -383,13 +383,7 @@ Deno.serve(async (req) => {
   //   ...res.fulltext_query_chi_sim,
   //   ...res.fulltext_query_eng,
   // ]);
-  const result = await search(
-    res.semantic_query,
-    [...res.fulltext_query_eng],
-    topK,
-    extK,
-    filter,
-  );
+  const result = await search(res.semantic_query, [...res.fulltext_query_eng], topK, extK, filter);
   // console.log(result);
 
   return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });

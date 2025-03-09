@@ -18,7 +18,7 @@ const querySchema = {
   properties: {
     semantic_query: {
       title: 'SemanticQuery',
-      description: "A query for semantic retrieval in English.",
+      description: 'A query for semantic retrieval in English.',
       type: 'string',
     },
     fulltext_query_eng: {
@@ -31,10 +31,7 @@ const querySchema = {
       },
     },
   },
-  required: [
-    'semantic_query',
-    'fulltext_query_eng',
-  ],
+  required: ['semantic_query', 'fulltext_query_eng'],
 };
 
 interface QueryResponse {
