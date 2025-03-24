@@ -561,3 +561,13 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search
     --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？", "topK": 3, "extK": 2}'
+
+
+============================================================
+Bigquery_Search
+============================================================
+### @name Bigquery_Search：local,x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/bigquery_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"欧盟新电池法规和循环经济行动计划有什么关系？"}'

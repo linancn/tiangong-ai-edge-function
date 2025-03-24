@@ -1,6 +1,7 @@
 {
   "imports": {
     "@aws-sdk/credential-provider-node": "npm:/@aws-sdk/credential-provider-node",
+    "@google-cloud/bigquery": "npm:/@google-cloud/bigquery",
     "@hono/hono": "jsr:@hono/hono",
     "@langchain/core/messages": "npm:/@langchain/core/messages",
     "@langchain/core/prompts": "npm:/@langchain/core/prompts",
