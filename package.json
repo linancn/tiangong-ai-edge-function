@@ -6,6 +6,6 @@
   "devDependencies": {
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "supabase": "^2.15.8"
+    "supabase": "^2.20.3"
   }
 }
