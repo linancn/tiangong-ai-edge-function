@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  let first_login = false;
+  // let first_login = false;
 
   if (!(await redis.exists(email))) {
     const authResponse = await supabaseAuth(supabase, email, password);
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       return authResponse;
     } else {
       await redis.setex(email, 3600, '');
-      first_login = true;
+      // first_login = true;
     }
   }
 

@@ -19,7 +19,7 @@
     "@upstash/redis": "npm:/@upstash/redis",
     "@tavily/core": "npm:/@tavily/core",
     "duck-duck-scrape": "npm:/duck-duck-scrape",
-    "neo4j-driver": "https://deno.land/x/neo4j_driver_lite@5.27.0/mod.ts",
+    "neo4j-driver": "https://deno.land/x/neo4j_driver_lite@5.28.1/mod.ts",
     "zod": "npm:/zod"
   }
 }
