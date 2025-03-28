@@ -20,6 +20,8 @@
     "@tavily/core": "npm:/@tavily/core",
     "duck-duck-scrape": "npm:/duck-duck-scrape",
     "neo4j-driver": "https://deno.land/x/neo4j_driver_lite@5.28.1/mod.ts",
-    "zod": "npm:/zod"
+    "zod": "npm:/zod",
+    "@modelcontextprotocol/sdk/server/mcp.js": "npm:@modelcontextprotocol/sdk/server/mcp.js",
+    "@modelcontextprotocol/sdk/server/stdio.js": "npm:@modelcontextprotocol/sdk/server/stdio.js"
   }
 }

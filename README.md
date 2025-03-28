@@ -73,6 +73,9 @@ npx supabase functions serve --env-file ./supabase/.env.local --no-verify-jwt
 # Start Deno Server for LangGrapgh
 deno run --allow-all --import-map supabase/functions/import_map.json --env --watch supabase/functions/main/index.ts
 
+# Start Deno Server for MCP
+npx @modelcontextprotocol/inspector deno run --allow-all --import-map supabase/functions/import_map.json --env --watch supabase/functions/mcp/index.ts
+
 curl -i --location --request GET 'http://localhost:8000/main/health'
 ```
 
