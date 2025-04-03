@@ -4,9 +4,9 @@
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.7.0",
+    "@modelcontextprotocol/inspector": "^0.8.0",
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "supabase": "^2.20.3"
+    "supabase": "^2.20.5"
   }
 }
