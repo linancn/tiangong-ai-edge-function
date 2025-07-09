@@ -44,6 +44,15 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
     --header 'x-region: {{$dotenv X_REGION}}' \
     --data '{"query": "溫室氣體總排放量是多少？", "filter": {"rec_id": ["73338fdb-5c79-44fb-adbf-09f2b580acc8","07aba0bb-ac7c-41a2-b50b-d2f7793e5b3c"]}, "extK": 2}'
 
+### @name ESG：remote_meta_contains
+curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
+    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
+    --header 'Content-Type: application/json' \
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --header 'x-region: {{$dotenv X_REGION}}' \
+    --data '{"query": "溫室氣體總排放量是多少？", "meta_contains":"太古", "topK": 3}'
+
 ### @name ESG：没有filter
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
