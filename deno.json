@@ -1,0 +1,4 @@
+{
+  "extends": "./supabase/functions/deno.json",
+  "nodeModulesDir": "auto"
+}
