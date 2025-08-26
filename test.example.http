@@ -37,7 +37,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/esg_search' \
 
 ### @name ESG：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -46,7 +45,6 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
 
 ### @name ESG：remote_meta_contains
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -55,7 +53,6 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
 
 ### @name ESG：没有filter
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/esg_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'x-api-key: {{$dotenv X_API_KEY}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
@@ -114,7 +111,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/standard_search' \
 
 ### @name Standard：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/standard_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -167,7 +163,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internal_search' \
 
 ### @name Internal_search：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internal_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -193,7 +188,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/textbook_search' \
 
 ### @name TextBook：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/textbook_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -233,7 +227,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_search' \
 
 ### @name edu：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -287,7 +280,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/sci_search' \
 
 ### @name SCI—remote：没有filter
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/sci_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -359,7 +351,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/patent_search' \
 
 ### @name patent—remote：没有filter
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/patent_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -393,7 +384,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/internet_search' \
 
 ### @name internet—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/internet_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -426,7 +416,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_search' 
 
 ### @name edu—graph—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -459,7 +448,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_search' \
 
 ### @name tavily—search—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -492,7 +480,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/tavily_extract' \
 
 ### @name tavily—extract—remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/tavily_extract' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -524,7 +511,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/edu_graph_generate
 
 ### @name edu-graph-generate_
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_graph_generate' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
@@ -557,7 +543,6 @@ curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/green_deal_search'
 
 ### @name green_deal_search：remote
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/green_deal_search' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
