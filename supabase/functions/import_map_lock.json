@@ -14,7 +14,7 @@
     "@pinecone-database/pinecone": "npm:/@pinecone-database/pinecone@3.0.3",
     "@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
     "@supabase/supabase-js@2": "jsr:@supabase/supabase-js@2",
-    "duck-duck-scrape": "npm:/duck-duck-scrape@2.2.5",
+    "duck-duck-scrape": "npm:/duck-duck-scrape@2.2.7",
     "zod": "npm:/zod@3.23.8"
   }
 }

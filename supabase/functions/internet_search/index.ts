@@ -26,9 +26,24 @@ const redis = new Redis({
 const search = async (query: string, maxResults: number = 3) => {
   try {
     // console.log('Searching:', query);
-    const searchResults = await DDGSearch(query, {
-      safeSearch: SafeSearchType.STRICT,
-    });
+    const searchResults = await DDGSearch(
+      query,
+      {
+        safeSearch: SafeSearchType.STRICT,
+      },
+      {
+        // Temporary mitigation for DDG anomaly detection (see Snazzah/duck-duck-scrape#140)
+        uri_modifier: (rawUrl: string) => {
+          try {
+            const url = new URL(rawUrl);
+            url.searchParams.delete('ss_mkt');
+            return url.toString();
+          } catch {
+            return rawUrl;
+          }
+        },
+      }
+    );
     // console.log(searchResults);
 
     if (Array.isArray(searchResults.results)) {
@@ -93,5 +108,7 @@ Deno.serve(async (req) => {
   const result = await search(query, maxResults);
   // console.log(result);
 
-  return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(result), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 });
