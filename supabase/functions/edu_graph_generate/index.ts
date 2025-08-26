@@ -20,7 +20,7 @@ const neo4j_user = Deno.env.get('NEO4J_USER') ?? '';
 const neo4j_password = Deno.env.get('NEO4J_PASSWORD') ?? '';
 
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-const supabase_anon_key =
+const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
@@ -28,7 +28,7 @@ const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
 
 const driver = neo4j.driver(neo4j_url, neo4j.auth.basic(neo4j_user, neo4j_password));
 
-const supabase = createClient(supabase_url, supabase_anon_key);
+const supabase = createClient(supabase_url, supabase_publishable_key);
 
 const redis = new Redis({
   url: redis_url,

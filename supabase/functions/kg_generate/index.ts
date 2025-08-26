@@ -12,7 +12,7 @@ const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
 
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-const supabase_anon_key =
+const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
 
 const model = new ChatOpenAI({
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
   // Get the session or user object
-  const supabase = createClient(supabase_url, supabase_anon_key);
+  const supabase = createClient(supabase_url, supabase_publishable_key);
   const authResponse = await supabaseAuth(
     supabase,
     req.headers.get('email') ?? '',

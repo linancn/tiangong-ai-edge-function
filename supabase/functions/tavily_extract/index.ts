@@ -10,7 +10,7 @@ import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-const supabase_anon_key =
+const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
@@ -20,7 +20,7 @@ const tavily_api_key = Deno.env.get('TAVILY_API_KEY') ?? '';
 
 const tvly = tavily({ apiKey: tavily_api_key });
 
-const supabase = createClient(supabase_url, supabase_anon_key);
+const supabase = createClient(supabase_url, supabase_publishable_key);
 
 const redis = new Redis({
   url: redis_url,

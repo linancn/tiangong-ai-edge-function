@@ -26,7 +26,7 @@ const opensearch_domain = Deno.env.get('OPENSEARCH_DOMAIN') ?? '';
 const opensearch_index_name = Deno.env.get('OPENSEARCH_SCI_INDEX_NAME') ?? '';
 
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-const supabase_anon_key =
+const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
@@ -53,7 +53,7 @@ const opensearchClient = new Client({
   node: opensearch_domain,
 });
 
-const supabase = createClient(supabase_url, supabase_anon_key);
+const supabase = createClient(supabase_url, supabase_publishable_key);
 
 const redis = new Redis({
   url: redis_url,
