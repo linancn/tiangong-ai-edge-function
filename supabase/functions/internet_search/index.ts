@@ -42,7 +42,7 @@ const search = async (query: string, maxResults: number = 3) => {
             return rawUrl;
           }
         },
-      }
+      },
     );
     // console.log(searchResults);
 
