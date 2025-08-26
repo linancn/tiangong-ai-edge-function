@@ -19,7 +19,7 @@ npm install
 # Update packages
 npm update && npm ci
 
-deno cache --reload *.ts
+deno cache --node-modules-dir --config supabase/functions/deno.json supabase/functions/**/index.ts
 
 npx supabase start
 
