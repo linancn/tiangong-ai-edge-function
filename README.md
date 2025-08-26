@@ -19,8 +19,6 @@ npm install
 # Update packages
 npm update && npm ci
 
-deno cache --node-modules-dir --config supabase/functions/deno.json supabase/functions/**/index.ts
-
 npx supabase start
 
 # start local instance with .env.local
