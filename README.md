@@ -9,9 +9,10 @@ nvm use
 
 curl -fsSL https://deno.land/install.sh | sh -s v2.1.4 # Then manually add the deno directory to your $HOME/.zshrc (or similar)
 
+# Install dependencies (first run)
 npm install
 
-# Update packages
+# Run npm update && npm ci to update dependencies again after executing deno cache in VSCode.
 npm update && npm ci
 
 # start local instance with .env.local
