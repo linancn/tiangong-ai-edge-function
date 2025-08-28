@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "prestart": "[ -x node_modules/.bin/supabase ] && node_modules/.bin/supabase --version >/dev/null 2>&1 || npm rebuild supabase --foreground-scripts || true",
     "start": "supabase functions serve --env-file ./supabase/.env.local --no-verify-jwt",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
