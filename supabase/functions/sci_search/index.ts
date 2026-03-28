@@ -2,7 +2,6 @@
 import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
-import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
@@ -10,11 +9,16 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
+import {
+  extractSynonymTerms,
+  mergeSynonymTerms,
+  prependSynonymsToText,
+} from '../_shared/document_synonyms.ts';
 import generateQuery from '../_shared/generate_query_en.ts';
+import { generateEmbedding } from '../_shared/openai_embedding.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
-const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
 const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
@@ -31,11 +35,6 @@ const supabase_publishable_key =
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
 const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
-
-const openaiClient = new OpenAIEmbeddings({
-  apiKey: openai_api_key,
-  model: openai_embedding_model,
-});
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
@@ -161,8 +160,9 @@ interface Document {
   sort_id: number;
   id: string;
   text: string;
+  synonyms: string[];
   journal: string;
-  date: number;
+  date: string;
 }
 
 const search = async (
@@ -178,7 +178,9 @@ const search = async (
   filter?: FilterType,
   datefilter?: DateFilterType,
 ) => {
-  const searchVector = await openaiClient.embedQuery(semantic_query);
+  const searchVector = await generateEmbedding(semantic_query, {
+    model: openai_embedding_model,
+  });
 
   // console.log(filter);
 
@@ -249,46 +251,54 @@ const search = async (
   // console.log(pineconeResponse);
   // console.log(fulltextResponse.body.hits.hits);
 
-  const id_set = new Set();
-  const unique_docs = [];
+  const id_set = new Set<string>();
+  const unique_docs: Document[] = [];
 
   for (const doc of pineconeResponse.matches) {
     if (doc.metadata && doc.metadata.doi) {
+      const metadata = doc.metadata as Record<string, any>;
       const id = doc.id;
       id_set.add(id);
-      const date = doc.metadata.date as number;
+      const date = metadata.date as number;
 
       unique_docs.push({
         sort_id: parseInt(doc.id.match(/_(\d+)$/)?.[1] ?? '0', 10),
-        id: String(doc.metadata.doi),
-        text: doc.metadata.text,
-        journal: doc.metadata.journal,
+        id: String(metadata.doi),
+        text: metadata.text,
+        synonyms: extractSynonymTerms(metadata),
+        journal: metadata.journal,
         date: formatTimestampToYearMonth(date),
       });
     }
   }
 
-  for (const doc of fulltextResponse.body.hits.hits) {
+  for (const hit of fulltextResponse.body.hits.hits) {
+    const doc = hit as { _id: string; _source?: Record<string, any> };
     const id = doc._id;
+    if (!doc._source || typeof doc._source !== 'object') {
+      continue;
+    }
     if (!id_set.has(id)) {
       id_set.add(id);
 
-      const date = doc._source.date as number;
+      const sourceDoc = doc._source;
+      const date = sourceDoc.date as number;
 
       unique_docs.push({
         sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
-        id: String(doc._source.doi),
-        text: doc._source.text,
-        journal: doc._source.journal,
+        id: String(sourceDoc.doi),
+        text: sourceDoc.text,
+        synonyms: extractSynonymTerms(sourceDoc),
+        journal: sourceDoc.journal,
         date: formatTimestampToYearMonth(date),
       });
     }
   }
 
   if (extK > 0) {
-    const extend_ids = new Set();
+    const extend_ids = new Set<string>();
     for (const id of id_set) {
-      const idRange = getIdRange(id as string, extK);
+      const idRange = getIdRange(id, extK);
       for (const id of idRange) {
         extend_ids.add(id);
       }
@@ -306,18 +316,42 @@ const search = async (
         ids: [...extend_ids],
       },
     });
-    const filteredResponse = extFulltextResponse.body.docs.filter(
-      (doc: { found: boolean }) => doc.found,
+    const filteredResponse = (extFulltextResponse.body.docs as unknown[]).filter(
+      (
+        doc: unknown,
+      ): doc is {
+        _id: string;
+        _source: Record<string, any>;
+        found: true;
+      } => {
+        if (!doc || typeof doc !== 'object') {
+          return false;
+        }
+
+        const record = doc as Record<string, unknown>;
+        return (
+          record.found === true &&
+          typeof record._id === 'string' &&
+          !!record._source &&
+          typeof record._source === 'object'
+        );
+      },
     );
 
     for (const doc of filteredResponse) {
+      const sourceDoc = doc._source;
+      const date =
+        typeof sourceDoc.date === 'number'
+          ? formatTimestampToYearMonth(sourceDoc.date)
+          : String(sourceDoc.date ?? '');
       // console.log(filteredResponse);
       unique_docs.push({
         sort_id: parseInt(doc._id.match(/_(\d+)$/)?.[1] ?? '0', 10),
-        id: doc._source.doi,
-        text: doc._source.text,
-        journal: doc._source.jounal,
-        date: doc._source.date,
+        id: sourceDoc.doi,
+        text: sourceDoc.text,
+        synonyms: extractSynonymTerms(sourceDoc),
+        journal: sourceDoc.journal ?? sourceDoc.jounal,
+        date,
       });
     }
   }
@@ -338,9 +372,11 @@ const search = async (
       if (currentGroup.length > 0) {
         // Combine texts for the current group
         const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+        const combinedSynonyms = mergeSynonymTerms(...currentGroup.map((doc) => doc.synonyms));
         combinedDocs.push({
           ...currentGroup[0],
           text: combinedText,
+          synonyms: combinedSynonyms,
         });
       }
       currentGroup = [doc];
@@ -353,9 +389,11 @@ const search = async (
   // Handle the last group
   if (currentGroup.length > 0) {
     const combinedText = currentGroup.map((doc) => doc.text).join('\n');
+    const combinedSynonyms = mergeSynonymTerms(...currentGroup.map((doc) => doc.synonyms));
     combinedDocs.push({
       ...currentGroup[0],
       text: combinedText,
+      synonyms: combinedSynonyms,
     });
   }
 
@@ -383,7 +421,10 @@ const search = async (
         const date = doc.date;
         const url = `https://doi.org/${record.doi}`;
         const sourceEntry = `[${title}, ${journal}. ${authors}. ${date}.](${url})`;
-        return { content: doc.text, source: sourceEntry };
+        return {
+          content: prependSynonymsToText(doc.text, doc.synonyms),
+          source: sourceEntry,
+        };
       } else {
         throw new Error('Record not found');
       }
@@ -393,7 +434,10 @@ const search = async (
     const docList = combinedDocs.map((doc) => {
       const url = `https://doi.org/${doc.id}`;
       const sourceEntry = `${url}`;
-      return { content: doc.text, source: sourceEntry };
+      return {
+        content: prependSynonymsToText(doc.text, doc.synonyms),
+        source: sourceEntry,
+      };
     });
     return docList;
   }

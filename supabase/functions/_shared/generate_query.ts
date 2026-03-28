@@ -1,85 +1,29 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { ChatOpenAI } from '@langchain/openai';
-
-const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
-// const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
-
-const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
-  temperature: 0,
-  apiKey: openai_api_key,
-});
-
-const querySchema = {
-  type: 'object',
-  properties: {
-    semantic_query: {
-      title: 'SemanticQuery',
-      description: "A query for semantic retrieval in query's original language.",
-      type: 'string',
-    },
-    fulltext_query_eng: {
-      title: 'FulltextQueryENG',
-      description:
-        'A query list for full-text search in English, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_sim: {
-      title: 'FulltextQueryChiSim',
-      description:
-        'A query list for full-text search in Simplified Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_tra: {
-      title: 'FulltextQueryChiTra',
-      description:
-        'A query list for full-text search in Traditional Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-  },
-  required: [
-    'semantic_query',
-    'fulltext_query_eng',
-    'fulltext_query_chi_sim',
-    'fulltext_query_chi_tra',
-  ],
-};
-
-interface QueryResponse {
-  semantic_query: string;
-  fulltext_query_eng: string[];
-  fulltext_query_chi_sim: string[];
-  fulltext_query_chi_tra: string[];
-}
-
-const modelWithStructuredOutput = model.withStructuredOutput(querySchema);
-
-const prompt = ChatPromptTemplate.fromMessages([
-  [
-    'system',
-    `Task: Transform original query into four specific queries: SemanticQuery, FulltextQueryENG, FulltextQueryChiSim and FulltextQueryChiTra.`,
-  ],
-  ['human', 'Original query: {input}'],
-]);
-
-const chain = prompt.pipe(modelWithStructuredOutput);
+import { runStructuredOpenAITask } from './openai_structured_task.ts';
+import {
+  CONTROLLED_SYNONYM_RULES,
+  multilingualQuerySchema,
+  MultilingualSearchQuery,
+  sanitizeMultilingualSearchQueryOutput,
+} from './search_query_utils.ts';
 
 async function generateQuery(query: string) {
-  const response = await chain.invoke({ input: query });
-  // console.log(response);
-  return response as QueryResponse;
+  const queryText = typeof query === 'string' ? query.trim() : String(query ?? '').trim();
+  const raw = await runStructuredOpenAITask<MultilingualSearchQuery>({
+    schemaName: 'search_query_generation',
+    schema: multilingualQuerySchema,
+    systemPrompt: `Task: Transform the original query into four specific fields for retrieval.
+- SemanticQuery should be a concise canonical query for semantic retrieval in the user's original language when possible.
+- FulltextQueryENG should contain English aliases only.
+- FulltextQueryChiSim should contain Simplified Chinese aliases only.
+- FulltextQueryChiTra should contain Traditional Chinese aliases only.
+${CONTROLLED_SYNONYM_RULES}`,
+    userPrompt: `Original query: ${queryText}`,
+  });
+
+  return sanitizeMultilingualSearchQueryOutput(raw, queryText);
 }
 
 export default generateQuery;

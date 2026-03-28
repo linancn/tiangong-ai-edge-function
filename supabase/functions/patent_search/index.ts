@@ -2,7 +2,6 @@
 import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
-import { OpenAIEmbeddings } from '@langchain/openai';
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
@@ -10,11 +9,12 @@ import { createClient } from '@supabase/supabase-js@2';
 import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
+import { extractSynonymTerms, prependSynonymsToText } from '../_shared/document_synonyms.ts';
 import generateQuery from '../_shared/generate_query.ts';
+import { generateEmbedding } from '../_shared/openai_embedding.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
-const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
 const openai_embedding_model = Deno.env.get('OPENAI_EMBEDDING_MODEL') ?? '';
 
 const pinecone_api_key = Deno.env.get('PINECONE_API_KEY_US_EAST_1') ?? '';
@@ -31,11 +31,6 @@ const supabase_publishable_key =
 
 const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
 const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
-
-const openaiClient = new OpenAIEmbeddings({
-  apiKey: openai_api_key,
-  model: openai_embedding_model,
-});
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 const index = pc.index(pinecone_index_name);
@@ -118,6 +113,16 @@ function filterToPCQuery(filters: FiltersType): PCFilter {
   };
 }
 
+interface Document {
+  id: string;
+  text: string;
+  synonyms: string[];
+  country: string;
+  publication_date: string;
+  title: string;
+  url: string;
+}
+
 const search = async (
   semantic_query: string,
   full_text_query: string[],
@@ -125,7 +130,9 @@ const search = async (
   filter?: FilterType,
   datefilter?: DateFilterType,
 ) => {
-  const searchVector = await openaiClient.embedQuery(semantic_query);
+  const searchVector = await generateEmbedding(semantic_query, {
+    model: openai_embedding_model,
+  });
 
   // console.log(filter);
   // console.log(filterToPCQuery(filter));
@@ -197,39 +204,47 @@ const search = async (
   // console.log(pineconeResponse);
   // console.log(fulltextResponse.body.hits.hits);
 
-  const id_set = new Set();
-  const unique_docs = [];
+  const id_set = new Set<string>();
+  const unique_docs: Document[] = [];
 
   for (const doc of pineconeResponse.matches) {
     if (doc.metadata && doc.id) {
+      const metadata = doc.metadata as Record<string, any>;
       const id = doc.id;
       id_set.add(id);
-      const date = doc.metadata.publication_date as number;
+      const date = metadata.publication_date as number;
 
       unique_docs.push({
         id: String(doc.id),
-        text: doc.metadata.abstract,
-        country: doc.metadata.country,
+        text: metadata.abstract,
+        synonyms: extractSynonymTerms(metadata),
+        country: metadata.country,
         publication_date: formatTimestampToDate(date),
-        title: doc.metadata.title,
-        url: doc.metadata.url,
+        title: metadata.title,
+        url: metadata.url,
       });
     }
   }
 
-  for (const doc of fulltextResponse.body.hits.hits) {
+  for (const hit of fulltextResponse.body.hits.hits) {
+    const doc = hit as { _id: string; _source?: Record<string, any> };
     const id = doc._id;
+    if (!doc._source || typeof doc._source !== 'object') {
+      continue;
+    }
     if (!id_set.has(id)) {
       id_set.add(id);
-      const date = doc._source.publication_date as number;
+      const sourceDoc = doc._source;
+      const date = sourceDoc.publication_date as number;
 
       unique_docs.push({
         id: String(doc._id),
-        text: doc._source.abstract,
-        country: doc._source.country,
+        text: sourceDoc.abstract,
+        synonyms: extractSynonymTerms(sourceDoc),
+        country: sourceDoc.country,
         publication_date: formatTimestampToDate(date),
-        title: doc._source.title,
-        url: doc._source.url,
+        title: sourceDoc.title,
+        url: sourceDoc.url,
       });
     }
   }
@@ -242,7 +257,10 @@ const search = async (
       const date = doc.publication_date;
       const url = doc.url;
       const sourceEntry = `[${title}, ${id}, ${country}. ${date}.](${url})`;
-      return { content: doc.text, source: sourceEntry };
+      return {
+        content: prependSynonymsToText(doc.text, doc.synonyms),
+        source: sourceEntry,
+      };
     });
     return docList;
   } else {
