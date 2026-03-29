@@ -7,6 +7,7 @@ import neo4j from 'neo4j-driver';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
 import generateQuery from '../_shared/generate_query.ts';
+import { buildLexicalQueryCandidates } from '../_shared/search_query_utils.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
@@ -85,11 +86,7 @@ Deno.serve(async (req) => {
 
   const res = await generateQuery(query);
   // console.log(res);
-  const result = await search(
-    [...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
-    root,
-    depth,
-  );
+  const result = await search(buildLexicalQueryCandidates(res), root, depth);
   // console.log(result);
 
   return new Response(JSON.stringify(result), {

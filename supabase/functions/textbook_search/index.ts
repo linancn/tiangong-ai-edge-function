@@ -16,6 +16,7 @@ import {
 } from '../_shared/document_synonyms.ts';
 import generateQuery from '../_shared/generate_query.ts';
 import { generateEmbedding } from '../_shared/openai_embedding.ts';
+import { buildLexicalQueryCandidates } from '../_shared/search_query_utils.ts';
 import supabaseAuth from '../_shared/supabase_auth.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
 
@@ -457,7 +458,7 @@ Deno.serve(async (req) => {
   // ]);
   const result = await search(
     res.semantic_query,
-    [...res.fulltext_query_chi_tra, ...res.fulltext_query_chi_sim, ...res.fulltext_query_eng],
+    buildLexicalQueryCandidates(res),
     topK,
     extK,
     filter,

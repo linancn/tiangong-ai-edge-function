@@ -3,25 +3,22 @@ import '@supabase/functions-js/edge-runtime.d.ts';
 
 import { runStructuredOpenAITask } from './openai_structured_task.ts';
 import {
-  CONTROLLED_SYNONYM_RULES,
+  buildEnglishQuerySystemPrompt,
   englishQuerySchema,
-  EnglishSearchQuery,
-  sanitizeEnglishSearchQueryOutput,
+  EnglishQueryPack,
+  sanitizeEnglishQueryPack,
 } from './search_query_utils.ts';
 
 async function generateQuery(query: string) {
   const queryText = typeof query === 'string' ? query.trim() : String(query ?? '').trim();
-  const raw = await runStructuredOpenAITask<EnglishSearchQuery>({
-    schemaName: 'english_search_query_generation',
+  const raw = await runStructuredOpenAITask<EnglishQueryPack>({
+    schemaName: 'english_query_pack_generation',
     schema: englishQuerySchema,
-    systemPrompt: `Task: Transform the original query into two specific fields for retrieval.
-- SemanticQuery should be a concise canonical query in English for semantic retrieval.
-- FulltextQueryENG should contain English aliases only.
-${CONTROLLED_SYNONYM_RULES}`,
+    systemPrompt: buildEnglishQuerySystemPrompt(),
     userPrompt: `Original query: ${queryText}`,
   });
 
-  return sanitizeEnglishSearchQueryOutput(raw, queryText);
+  return sanitizeEnglishQueryPack(raw, queryText);
 }
 
 export default generateQuery;

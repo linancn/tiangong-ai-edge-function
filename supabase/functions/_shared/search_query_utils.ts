@@ -1,13 +1,13 @@
-export interface MultilingualSearchQuery {
+export interface QueryPack {
   semantic_query: string;
-  fulltext_query_eng: string[];
-  fulltext_query_chi_sim: string[];
-  fulltext_query_chi_tra: string[];
+  lexical_query: string;
+  semantic_query_en?: string | null;
+  lexical_query_en?: string | null;
 }
 
-export interface EnglishSearchQuery {
+export interface EnglishQueryPack {
   semantic_query: string;
-  fulltext_query_eng: string[];
+  lexical_query: string;
 }
 
 export const multilingualQuerySchema: Record<string, unknown> = {
@@ -16,42 +16,29 @@ export const multilingualQuerySchema: Record<string, unknown> = {
     semantic_query: {
       title: 'SemanticQuery',
       description:
-        'Canonical query term for semantic retrieval in the original user language when possible.',
+        'Concise primary retrieval query for Chinese or mixed-language corpora. Compress long inputs without broadening scope.',
       type: 'string',
     },
-    fulltext_query_eng: {
-      title: 'FulltextQueryENG',
-      description: 'Dictionary-style aliases in English only. No intent or topic phrases.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_sim: {
-      title: 'FulltextQueryChiSim',
+    lexical_query: {
+      title: 'LexicalQuery',
       description:
-        'Dictionary-style aliases in Simplified Chinese only. No intent or topic phrases.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
+        'Concise keyword-focused lexical query for Chinese or mixed-language corpora. Keep important entities, constraints, official names, abbreviations, and identifiers.',
+      type: 'string',
     },
-    fulltext_query_chi_tra: {
-      title: 'FulltextQueryChiTra',
+    semantic_query_en: {
+      title: 'SemanticQueryEN',
       description:
-        'Dictionary-style aliases in Traditional Chinese only. No intent or topic phrases.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
+        'Optional English canonical query when directly useful for retrieval against English corpora.',
+      type: ['string', 'null'],
+    },
+    lexical_query_en: {
+      title: 'LexicalQueryEN',
+      description:
+        'Optional English keyword-focused lexical query when directly useful for retrieval against English corpora.',
+      type: ['string', 'null'],
     },
   },
-  required: [
-    'semantic_query',
-    'fulltext_query_eng',
-    'fulltext_query_chi_sim',
-    'fulltext_query_chi_tra',
-  ],
+  required: ['semantic_query', 'lexical_query', 'semantic_query_en', 'lexical_query_en'],
   additionalProperties: false,
 };
 
@@ -60,55 +47,172 @@ export const englishQuerySchema: Record<string, unknown> = {
   properties: {
     semantic_query: {
       title: 'SemanticQuery',
-      description: 'Canonical query term for semantic retrieval in English.',
+      description:
+        'Concise English canonical retrieval phrase. Compress long inputs without broadening scope.',
       type: 'string',
     },
-    fulltext_query_eng: {
-      title: 'FulltextQueryENG',
-      description: 'Dictionary-style aliases in English only. No intent or topic phrases.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
+    lexical_query: {
+      title: 'LexicalQuery',
+      description:
+        'Concise English keyword-focused retrieval phrase for full-text search. Keep important entities, constraints, official names, abbreviations, and identifiers.',
+      type: 'string',
     },
   },
-  required: ['semantic_query', 'fulltext_query_eng'],
+  required: ['semantic_query', 'lexical_query'],
   additionalProperties: false,
 };
 
-export const CONTROLLED_SYNONYM_RULES = `
-Output rules:
-1) Return dictionary-style synonyms or aliases only.
-2) Do NOT output topic, intent, or explanatory phrases.
-3) Prefer canonical names, standardized abbreviations, identifiers, transliterations, and common aliases.
-4) Avoid explanatory sentences and punctuation-heavy fragments.
-5) Keep outputs deterministic: canonical term first, then standardized abbreviations or identifiers, then common aliases.
-6) Avoid near-duplicate variants that only add redundant words.
+export const CONTROLLED_QUERY_REWRITE_RULES = `
+Rewrite rules:
+1) Preserve the user's scope, constraints, comparisons, and time references.
+2) Do NOT generate synonym lists, answers, explanations, or subqueries.
+3) Return retrieval-ready noun phrases only. Do NOT return questions or long explanatory sentences.
+4) For lexical queries, keep important entities, modifiers, and constraints in natural order. Do NOT create awkward reordered keyword strings.
+5) Keep standard numbers, abbreviations, identifiers, chemical formulas, and official names in the form most likely to appear in the target corpus.
+6) Keep semantic queries close to the original wording whenever the original query is already retrieval-ready, but remove question framing and filler words.
+7) For paragraph input, compress conservatively into one short retrieval-ready phrase that preserves the target, object, and constraints. Do NOT decompose into subqueries.
+8) Return short plain strings only.
+9) For relationship questions between named policies, regulations, standards, directives, strategies, or action plans, keep both official names and prefer a concrete linkage phrase such as "<specific document> under <broader framework>" or "<specific document> in the context of <framework>" instead of a vague standalone "relationship" phrase.
 `;
 
-const EN_FORBIDDEN_SUBSTRINGS = [
-  'query',
-  'search',
-  'description',
-  'topic',
-  'question',
-  'meaning',
-  'definition',
+const MULTILINGUAL_QUERY_PACK_EXAMPLES = `
+Examples:
+- User: nitrogen and phosphorus removal in wastewater treatment plants
+  semantic_query: 污水处理厂脱氮除磷
+  lexical_query: 污水处理厂 脱氮 除磷
+  semantic_query_en: nitrogen and phosphorus removal in wastewater treatment plants
+  lexical_query_en: nitrogen phosphorus removal wastewater treatment plants
+- User: 二氧化硫一级浓度限值是多少？
+  semantic_query: 二氧化硫一级浓度限值
+  lexical_query: 二氧化硫 一级 浓度限值
+  semantic_query_en: sulfur dioxide primary concentration limit
+  lexical_query_en: sulfur dioxide primary concentration limit
+- User: The EU Battery Regulation requires manufacturers to disclose battery carbon footprint, recycled content, due diligence obligations, and end-of-life collection responsibilities for electric vehicle batteries.
+  semantic_query: 欧盟电池法规中电动汽车电池碳足迹、再生材料、尽职调查和回收责任要求
+  lexical_query: 欧盟电池法规 电动汽车电池 碳足迹 再生材料 尽职调查 回收责任 要求
+  semantic_query_en: EU Battery Regulation compliance requirements for electric vehicle batteries covering carbon footprint, recycled content, due diligence, and end-of-life collection
+  lexical_query_en: EU Battery Regulation electric vehicle batteries carbon footprint recycled content due diligence end-of-life collection compliance requirements
+`;
+
+const ENGLISH_QUERY_PACK_EXAMPLES = `
+Examples:
+- User: 关键金属物质流的全球贸易特征是什么？
+  semantic_query: global trade characteristics of critical metal material flows
+  lexical_query: critical metal material flows global trade characteristics
+- User: What are the due diligence requirements in the EU Battery Regulation?
+  semantic_query: due diligence requirements in the EU Battery Regulation
+  lexical_query: due diligence requirements EU Battery Regulation
+- User: What is the relationship between the EU Battery Regulation and the Circular Economy Action Plan?
+  semantic_query: EU Battery Regulation under the Circular Economy Action Plan
+  lexical_query: Circular Economy Action Plan EU Battery Regulation batteries waste batteries
+- User: 欧盟新电池法规和循环经济行动计划有什么关系？
+  semantic_query: EU Battery Regulation under the Circular Economy Action Plan
+  lexical_query: Circular Economy Action Plan EU Battery Regulation batteries waste batteries
+- User: What is the impact of the EU Battery Regulation on battery recycling?
+  semantic_query: battery recycling provisions in the EU Battery Regulation
+  lexical_query: EU Battery Regulation batteries waste batteries recycling collection recycling efficiencies
+- User: 欧盟新电池法规对电池回收有什么影响？
+  semantic_query: battery recycling provisions in the EU Battery Regulation
+  lexical_query: EU Battery Regulation batteries waste batteries recycling collection recycling efficiencies
+- User: What batteries are covered by the EU Battery Regulation?
+  semantic_query: battery categories covered by the EU Battery Regulation
+  lexical_query: EU Battery Regulation portable batteries industrial batteries electric vehicle batteries LMT batteries covered
+- User: 欧盟电池法规适用于哪些电池？
+  semantic_query: battery categories covered by the EU Battery Regulation
+  lexical_query: EU Battery Regulation portable batteries industrial batteries electric vehicle batteries LMT batteries covered
+- User: When do the EU Battery Regulation carbon footprint requirements take effect?
+  semantic_query: application timeline of carbon footprint requirements in the EU Battery Regulation
+  lexical_query: EU Battery Regulation carbon footprint declaration performance classes maximum carbon thresholds timeline
+- User: 欧盟电池法规碳足迹要求什么时候生效？
+  semantic_query: application timeline of carbon footprint requirements in the EU Battery Regulation
+  lexical_query: EU Battery Regulation carbon footprint declaration performance classes maximum carbon thresholds timeline
+- User: What are the recycled content requirements in the EU Battery Regulation?
+  semantic_query: recycled content requirements for industrial and electric vehicle batteries in the EU Battery Regulation
+  lexical_query: EU Battery Regulation recycled content cobalt lead lithium nickel industrial batteries electric vehicle batteries
+- User: 欧盟电池法规对再生材料有什么要求？
+  semantic_query: recycled content requirements for industrial and electric vehicle batteries in the EU Battery Regulation
+  lexical_query: EU Battery Regulation recycled content cobalt lead lithium nickel industrial batteries electric vehicle batteries
+- User: The EU Battery Regulation requires manufacturers to disclose battery carbon footprint, recycled content, due diligence obligations, and end-of-life collection responsibilities for electric vehicle batteries.
+  semantic_query: EU Battery Regulation compliance requirements for electric vehicle batteries covering carbon footprint, recycled content, due diligence, and end-of-life collection
+  lexical_query: EU Battery Regulation electric vehicle batteries carbon footprint recycled content due diligence end-of-life collection compliance requirements
+`;
+
+type ScriptKind = 'cjk' | 'latin' | 'mixed' | 'neutral';
+type ScriptPreference = 'cjk_or_mixed' | 'latin_or_mixed';
+
+const ENGLISH_WORD_PATTERN = /[a-z0-9-]+/gi;
+
+const ENGLISH_QUESTION_REWRITES: Array<{ pattern: RegExp; replacement: string }> = [
+  {
+    pattern: /^(?:please\s+)?what\s+is\s+the\s+relationship\s+between\s+(.+)$/i,
+    replacement: 'relationship between $1',
+  },
+  {
+    pattern: /^(?:please\s+)?what\s+(?:is|are)\s+(.+)$/i,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(?:please\s+)?(?:which|who|where|when|why)\s+(.+)$/i,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(?:please\s+)?how\s+(?:to\s+|do\s+|does\s+|can\s+|could\s+|should\s+|would\s+|will\s+)?(.+)$/i,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(?:please\s+)?(?:is|are|do|does|did|can|could|should|would|will)\s+(.+)$/i,
+    replacement: '$1',
+  },
 ];
 
-const ZH_FORBIDDEN_SUBSTRINGS = ['查询', '检索', '描述', '主题', '问题', '含义', '定义'];
+const CHINESE_QUESTION_REWRITES: Array<{ pattern: RegExp; replacement: string }> = [
+  {
+    pattern: /^(?:请问一下?|请问|请教一下?|我想了解|我想知道|想了解|想知道|帮我找|帮我查)\s*(.+)$/u,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(?:什么是|什么叫|如何|怎么|怎样|为何|为什么)\s*(.+)$/u,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(.+?)是什么$/u,
+    replacement: '$1',
+  },
+  {
+    pattern: /^(.+?)是多少$/u,
+    replacement: '$1',
+  },
+];
 
-const CAS_PATTERN = /^\d{2,7}-\d{2}-\d$/;
-const CJK_PATTERN = /[\u3400-\u9fff]/;
-const LATIN_CHAR_PATTERN = /[a-z]/i;
+export function buildMultilingualQuerySystemPrompt(): string {
+  return `Task: Rewrite the original query into a conservative multilingual retrieval query pack for environmental-domain search over mostly Chinese or mixed-language corpora.
+- SemanticQuery should be the primary retrieval phrase for the target corpus. For English input, translate into concise Chinese or mixed Chinese-English terminology when that clearly improves recall against Chinese corpora.
+- LexicalQuery should be a concise keyword-focused full-text query for the same corpus.
+- SemanticQueryEN should be a concise English canonical retrieval phrase when useful.
+- LexicalQueryEN should be a concise English keyword-focused retrieval phrase when useful.
+${CONTROLLED_QUERY_REWRITE_RULES}
+${MULTILINGUAL_QUERY_PACK_EXAMPLES}`;
+}
 
-function normalizeTerm(term: string): string {
-  const normalized = term.replace(/\s+/g, ' ').trim();
-  const casMatch = normalized.match(/^cas\s*(\d{2,7}-\d{2}-\d)$/i);
-  if (casMatch?.[1]) {
-    return casMatch[1];
+export function buildEnglishQuerySystemPrompt(): string {
+  return `Task: Rewrite the original query into a conservative English retrieval query pack for environmental-domain search over English corpora.
+- Always output English retrieval phrases, even when the original query is in Chinese or another language.
+- SemanticQuery should be a concise English canonical retrieval phrase.
+- LexicalQuery should be a concise English keyword-focused retrieval phrase.
+${CONTROLLED_QUERY_REWRITE_RULES}
+${ENGLISH_QUERY_PACK_EXAMPLES}`;
+}
+
+function normalizeQueryText(value: unknown): string {
+  if (typeof value !== 'string') {
+    return String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
-  return normalized;
+
+  return value
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function normalizeCompareKey(term: string): string {
@@ -119,166 +223,350 @@ function normalizeCompareKey(term: string): string {
     .trim();
 }
 
-function normalizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
+function countMatches(text: string, pattern: RegExp): number {
+  const matches = text.match(pattern);
+  return matches ? matches.length : 0;
+}
+
+function countEnglishWords(text: string): number {
+  const matches = text.match(ENGLISH_WORD_PATTERN);
+  return matches ? matches.length : 0;
+}
+
+function detectPrimaryScript(text: string): ScriptKind {
+  const normalized = normalizeQueryText(text);
+  const cjkCount = countMatches(normalized, /[\u3400-\u9fff]/g);
+  const latinCount = countMatches(normalized, /[a-z]/gi);
+
+  if (cjkCount === 0 && latinCount === 0) {
+    return 'neutral';
   }
 
-  return value
-    .filter((item): item is string => typeof item === 'string')
-    .map((item) => normalizeTerm(item))
-    .filter((item) => item.length > 0);
+  if (cjkCount > 0 && latinCount === 0) {
+    return 'cjk';
+  }
+
+  if (latinCount > 0 && cjkCount === 0) {
+    return 'latin';
+  }
+
+  if (cjkCount > latinCount) {
+    return 'cjk';
+  }
+
+  if (latinCount > cjkCount) {
+    return 'latin';
+  }
+
+  return 'mixed';
 }
 
-function hasForbiddenSubstring(term: string, candidates: string[]): boolean {
-  return candidates.some((candidate) => term.includes(candidate));
+function stripWrappingDelimiters(text: string): string {
+  return text
+    .replace(/^[\s"'`“”‘’()\[\]{}<>【】「」『』]+/g, '')
+    .replace(/[\s"'`“”‘’()\[\]{}<>【】「」『』]+$/g, '');
 }
 
-function dedupeNearDuplicates(terms: string[]): string[] {
+function stripTrailingSentencePunctuation(text: string): string {
+  return text.replace(/[?？!.。;；:：]+$/g, '').trim();
+}
+
+function toRetrievalPhrase(value: string): string {
+  let output = normalizeQueryText(value);
+  if (!output) {
+    return output;
+  }
+
+  output = stripWrappingDelimiters(output);
+  output = stripTrailingSentencePunctuation(output);
+
+  for (const { pattern, replacement } of ENGLISH_QUESTION_REWRITES) {
+    output = output.replace(pattern, replacement).trim();
+  }
+  output = output.replace(/^(?:the|a|an)\s+/i, '');
+
+  for (const { pattern, replacement } of CHINESE_QUESTION_REWRITES) {
+    output = output.replace(pattern, replacement).trim();
+  }
+  output = output.replace(/^(?:关于|有关)\s*/u, '');
+
+  return normalizeQueryText(stripTrailingSentencePunctuation(output));
+}
+
+function sanitizeRetrievalCandidate(candidate: string, fallback = ''): string {
+  const normalized = normalizeQueryText(candidate || fallback);
+  if (!normalized) {
+    return '';
+  }
+
+  return toRetrievalPhrase(normalized) || normalizeQueryText(fallback);
+}
+
+function isLikelyParagraph(text: string): boolean {
+  const normalized = normalizeQueryText(text);
+  if (!normalized) {
+    return false;
+  }
+
+  return normalized.length >= 140 || countEnglishWords(normalized) >= 24 || /[.;:。；：]/.test(normalized);
+}
+
+function isInsufficientlyCompressed(candidate: string, userQuery: string): boolean {
+  const normalizedCandidate = normalizeQueryText(candidate);
+  const normalizedUserQuery = normalizeQueryText(userQuery);
+
+  if (!normalizedCandidate || !normalizedUserQuery || !isLikelyParagraph(normalizedUserQuery)) {
+    return false;
+  }
+
+  const candidateLengthRatio = normalizedCandidate.length / Math.max(normalizedUserQuery.length, 1);
+  const candidateWordCount = countEnglishWords(normalizedCandidate);
+  const userWordCount = countEnglishWords(normalizedUserQuery);
+
+  if (candidateLengthRatio >= 0.88) {
+    return true;
+  }
+
+  if (userWordCount >= 24 && candidateWordCount >= Math.max(18, userWordCount - 3)) {
+    return true;
+  }
+
+  return /[.;:。；：]/.test(normalizedCandidate);
+}
+
+function getScriptPreferenceScore(candidateScript: ScriptKind, preference?: ScriptPreference): number {
+  if (preference === 'cjk_or_mixed') {
+    if (candidateScript === 'cjk') {
+      return 3;
+    }
+    if (candidateScript === 'mixed') {
+      return 2;
+    }
+    return 0;
+  }
+
+  if (preference === 'latin_or_mixed') {
+    if (candidateScript === 'latin') {
+      return 3;
+    }
+    if (candidateScript === 'mixed') {
+      return 2;
+    }
+    return -2;
+  }
+
+  return 0;
+}
+
+function scoreQueryCandidate(
+  candidate: string | undefined,
+  userQuery: string,
+  options?: { preferScript?: ScriptPreference; blockLatinForCjkSource?: boolean },
+): number {
+  const normalizedCandidate = normalizeQueryText(candidate);
+  if (!normalizedCandidate) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const sourceScript = detectPrimaryScript(userQuery);
+  const candidateScript = detectPrimaryScript(normalizedCandidate);
+
+  let score = 0;
+  score += getScriptPreferenceScore(candidateScript, options?.preferScript);
+
+  if (isInsufficientlyCompressed(normalizedCandidate, userQuery)) {
+    score -= 4;
+  } else {
+    score += 4;
+  }
+
+  if (normalizeCompareKey(normalizedCandidate) === normalizeCompareKey(userQuery) && isLikelyParagraph(userQuery)) {
+    score -= 2;
+  }
+
+  if (/[.;:。；：]/.test(normalizedCandidate)) {
+    score -= 2;
+  }
+
+  if (normalizedCandidate.length > 160) {
+    score -= 2;
+  }
+
+  if (options?.blockLatinForCjkSource && sourceScript === 'cjk' && candidateScript === 'latin') {
+    score -= 8;
+  }
+
+  return score;
+}
+
+function chooseHigherQualityCandidate(
+  primary: string,
+  alternatives: Array<string | undefined>,
+  userQuery: string,
+  options?: { preferScript?: ScriptPreference; blockLatinForCjkSource?: boolean },
+): string {
+  let bestCandidate = normalizeQueryText(primary);
+  let bestScore = scoreQueryCandidate(bestCandidate, userQuery, options);
+
+  for (const alternative of alternatives) {
+    const normalizedAlternative = normalizeQueryText(alternative);
+    if (!normalizedAlternative) {
+      continue;
+    }
+
+    const alternativeScore = scoreQueryCandidate(normalizedAlternative, userQuery, options);
+    if (alternativeScore > bestScore) {
+      bestCandidate = normalizedAlternative;
+      bestScore = alternativeScore;
+    }
+  }
+
+  return bestCandidate;
+}
+
+function sanitizeOptionalEnglishQuery(candidate: string, fallback = ''): string | undefined {
+  const normalized = sanitizeRetrievalCandidate(candidate || fallback, fallback);
+  if (!normalized) {
+    return undefined;
+  }
+
+  const script = detectPrimaryScript(normalized);
+  if (script === 'cjk') {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+function dedupeQueryCandidates(candidates: Array<string | undefined>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
 
-  for (const term of terms) {
-    const key = normalizeCompareKey(term);
+  for (const candidate of candidates) {
+    const normalized = normalizeQueryText(candidate);
+    if (!normalized) {
+      continue;
+    }
+
+    const key = normalizeCompareKey(normalized);
     if (!key || seen.has(key)) {
       continue;
     }
+
     seen.add(key);
-    out.push(term);
+    out.push(normalized);
   }
 
   return out;
 }
 
-function sortTermsDeterministically(terms: string[], locale: string): string[] {
-  return [...terms].sort((a, b) => a.localeCompare(b, locale));
-}
+export function sanitizeMultilingualQueryPack(raw: QueryPack, userQuery: string): QueryPack {
+  const normalizedUserQuery = sanitizeRetrievalCandidate(userQuery, userQuery);
+  const sourceScript = detectPrimaryScript(normalizedUserQuery);
 
-function isDictionaryAliasEn(term: string): boolean {
-  const normalized = normalizeTerm(term);
-  const lowered = normalized.toLowerCase();
-
-  if (!normalized || normalized.length > 160) {
-    return false;
-  }
-
-  if (CAS_PATTERN.test(normalized)) {
-    return true;
-  }
-
-  if (!LATIN_CHAR_PATTERN.test(normalized)) {
-    return false;
-  }
-
-  if (hasForbiddenSubstring(lowered, EN_FORBIDDEN_SUBSTRINGS)) {
-    return false;
-  }
-
-  if (normalized.split(' ').length > 12) {
-    return false;
-  }
-
-  if (/[\n\r]/.test(normalized)) {
-    return false;
-  }
-
-  return true;
-}
-
-function isDictionaryAliasCjk(term: string): boolean {
-  const normalized = normalizeTerm(term);
-
-  if (!normalized || normalized.length > 80) {
-    return false;
-  }
-
-  if (CAS_PATTERN.test(normalized)) {
-    return true;
-  }
-
-  if (!CJK_PATTERN.test(normalized)) {
-    return false;
-  }
-
-  if (hasForbiddenSubstring(normalized, ZH_FORBIDDEN_SUBSTRINGS)) {
-    return false;
-  }
-
-  if (/[\n\r]/.test(normalized)) {
-    return false;
-  }
-
-  return true;
-}
-
-function seedEnglishTerms(semanticQuery: string, fulltextQueryEn: string[]): string[] {
-  const seed = LATIN_CHAR_PATTERN.test(semanticQuery) ? semanticQuery : fulltextQueryEn[0] || '';
-  const rest = fulltextQueryEn.filter((term) => term.toLowerCase() !== seed.toLowerCase());
-  const sortedRest = sortTermsDeterministically(dedupeNearDuplicates(rest), 'en');
-  return seed ? [seed, ...sortedRest] : sortedRest;
-}
-
-function seedChineseTerms(userQuery: string, fulltextQueryZh: string[]): string[] {
-  const seed = CJK_PATTERN.test(userQuery) ? userQuery : fulltextQueryZh[0] || '';
-  const rest = fulltextQueryZh.filter((term) => term !== seed);
-  const sortedRest = sortTermsDeterministically(dedupeNearDuplicates(rest), 'zh-Hans-CN');
-  return seed ? [seed, ...sortedRest] : sortedRest;
-}
-
-export function sanitizeMultilingualSearchQueryOutput(
-  raw: MultilingualSearchQuery,
-  userQuery: string,
-): MultilingualSearchQuery {
-  const normalizedUserQuery = normalizeTerm(userQuery);
-  const semanticQuery = normalizeTerm(raw.semantic_query || normalizedUserQuery);
-
-  let fulltextQueryEng = dedupeNearDuplicates(
-    normalizeStringArray(raw.fulltext_query_eng).filter(isDictionaryAliasEn),
-  );
-  let fulltextQueryChiSim = dedupeNearDuplicates(
-    normalizeStringArray(raw.fulltext_query_chi_sim).filter(isDictionaryAliasCjk),
-  );
-  let fulltextQueryChiTra = dedupeNearDuplicates(
-    normalizeStringArray(raw.fulltext_query_chi_tra).filter(isDictionaryAliasCjk),
+  let semanticQuery = sanitizeRetrievalCandidate(raw.semantic_query || normalizedUserQuery, normalizedUserQuery);
+  let lexicalQuery = sanitizeRetrievalCandidate(
+    raw.lexical_query || semanticQuery || normalizedUserQuery,
+    semanticQuery || normalizedUserQuery,
   );
 
-  if (fulltextQueryEng.length === 0 && semanticQuery) {
-    fulltextQueryEng = [semanticQuery];
+  let semanticQueryEn = sanitizeOptionalEnglishQuery(
+    raw.semantic_query_en || '',
+    sourceScript === 'latin' ? semanticQuery : '',
+  );
+  let lexicalQueryEn = sanitizeOptionalEnglishQuery(
+    raw.lexical_query_en || '',
+    sourceScript === 'latin' ? lexicalQuery : semanticQueryEn || '',
+  );
+
+  semanticQuery = chooseHigherQualityCandidate(
+    semanticQuery,
+    [semanticQueryEn, lexicalQueryEn],
+    normalizedUserQuery,
+    { preferScript: 'cjk_or_mixed', blockLatinForCjkSource: true },
+  );
+  lexicalQuery = chooseHigherQualityCandidate(
+    lexicalQuery,
+    [semanticQuery, lexicalQueryEn, semanticQueryEn],
+    normalizedUserQuery,
+    { preferScript: 'cjk_or_mixed', blockLatinForCjkSource: true },
+  );
+
+  if (sourceScript === 'cjk' && detectPrimaryScript(semanticQuery) === 'latin') {
+    semanticQuery = normalizedUserQuery;
+  }
+  if (sourceScript === 'cjk' && detectPrimaryScript(lexicalQuery) === 'latin') {
+    lexicalQuery = semanticQuery || normalizedUserQuery;
   }
 
-  if (fulltextQueryChiSim.length === 0 && CJK_PATTERN.test(normalizedUserQuery)) {
-    fulltextQueryChiSim = [normalizedUserQuery];
-  }
-
-  if (fulltextQueryChiTra.length === 0 && CJK_PATTERN.test(normalizedUserQuery)) {
-    fulltextQueryChiTra = [normalizedUserQuery];
-  }
+  semanticQueryEn = sanitizeOptionalEnglishQuery(
+    semanticQueryEn || '',
+    sourceScript === 'latin' ? semanticQuery : '',
+  );
+  lexicalQueryEn = sanitizeOptionalEnglishQuery(
+    lexicalQueryEn || '',
+    sourceScript === 'latin' ? lexicalQuery : semanticQueryEn || '',
+  );
 
   return {
     semantic_query: semanticQuery || normalizedUserQuery,
-    fulltext_query_eng: seedEnglishTerms(semanticQuery, fulltextQueryEng).slice(0, 6),
-    fulltext_query_chi_sim: seedChineseTerms(normalizedUserQuery, fulltextQueryChiSim).slice(0, 6),
-    fulltext_query_chi_tra: seedChineseTerms(normalizedUserQuery, fulltextQueryChiTra).slice(0, 6),
+    lexical_query: lexicalQuery || semanticQuery || normalizedUserQuery,
+    ...(semanticQueryEn ? { semantic_query_en: semanticQueryEn } : {}),
+    ...(lexicalQueryEn ? { lexical_query_en: lexicalQueryEn } : {}),
   };
 }
 
-export function sanitizeEnglishSearchQueryOutput(
-  raw: EnglishSearchQuery,
-  userQuery: string,
-): EnglishSearchQuery {
-  const normalizedUserQuery = normalizeTerm(userQuery);
-  const semanticQuery = normalizeTerm(raw.semantic_query || normalizedUserQuery);
-
-  let fulltextQueryEng = dedupeNearDuplicates(
-    normalizeStringArray(raw.fulltext_query_eng).filter(isDictionaryAliasEn),
+export function sanitizeEnglishQueryPack(raw: EnglishQueryPack, userQuery: string): EnglishQueryPack {
+  const normalizedUserQuery = sanitizeRetrievalCandidate(userQuery, userQuery);
+  let semanticQuery = sanitizeRetrievalCandidate(raw.semantic_query || normalizedUserQuery, normalizedUserQuery);
+  let lexicalQuery = sanitizeRetrievalCandidate(
+    raw.lexical_query || semanticQuery || normalizedUserQuery,
+    semanticQuery || normalizedUserQuery,
   );
 
-  if (fulltextQueryEng.length === 0 && semanticQuery) {
-    fulltextQueryEng = [semanticQuery];
-  }
+  semanticQuery = chooseHigherQualityCandidate(
+    semanticQuery,
+    [lexicalQuery],
+    normalizedUserQuery,
+    { preferScript: 'latin_or_mixed' },
+  );
+  lexicalQuery = chooseHigherQualityCandidate(
+    lexicalQuery,
+    [semanticQuery],
+    normalizedUserQuery,
+    { preferScript: 'latin_or_mixed' },
+  );
 
   return {
     semantic_query: semanticQuery || normalizedUserQuery,
-    fulltext_query_eng: seedEnglishTerms(semanticQuery, fulltextQueryEng).slice(0, 6),
+    lexical_query: lexicalQuery || semanticQuery || normalizedUserQuery,
   };
+}
+
+export function buildLexicalQueryCandidates(
+  queryPack: QueryPack | EnglishQueryPack,
+  options?: { maxQueries?: number },
+): string[] {
+  const maxQueries = options?.maxQueries ?? 4;
+  const candidates = dedupeQueryCandidates([
+    queryPack.lexical_query,
+    queryPack.semantic_query,
+    'lexical_query_en' in queryPack ? queryPack.lexical_query_en ?? undefined : undefined,
+    'semantic_query_en' in queryPack ? queryPack.semantic_query_en ?? undefined : undefined,
+  ]);
+
+  return candidates.slice(0, maxQueries);
+}
+
+export function isLikelyParagraphQuery(query: string): boolean {
+  const normalized = normalizeQueryText(query);
+  return normalized.length >= 140 || normalized.split(/[。！？.!?]/).filter(Boolean).length >= 2;
+}
+
+export function containsCjk(text: string): boolean {
+  return /[\u3400-\u9fff]/.test(text);
+}
+
+export function containsLatin(text: string): boolean {
+  return /[a-z]/i.test(text);
 }
