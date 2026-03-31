@@ -308,58 +308,6 @@ const FUNCTION_SPECS: FunctionSpec[] = [
       'extending product lifetime through second-hand markets',
     ],
   },
-  {
-    name: 'edu_graph_search',
-    kind: 'graph_search',
-    queries: [
-      '大气污染控制',
-      '水处理工程',
-      '海岸带资源环境调控',
-      '活性污泥法',
-      '脱氮除磷',
-      '温室气体排放',
-      '生命周期评价',
-      '循环经济',
-      '生态修复',
-      '固体废物处理',
-      '环境影响评价',
-      '大气污染的治理方法',
-      '水污染控制',
-      '土壤修复',
-      '噪声污染控制',
-      '气候变化',
-      '环境监测',
-      '资源循环利用',
-      '海岸带生态系统',
-      '工业废水处理',
-    ],
-  },
-  {
-    name: 'edu_graph_generate',
-    kind: 'graph_generate',
-    queries: [
-      '海岸带资源环境调控',
-      '大气污染控制',
-      '水处理工程',
-      '固体废物资源化',
-      '生命周期评价',
-      '循环经济',
-      '生态修复',
-      '污泥处理处置',
-      '脱氮除磷',
-      '环境影响评价',
-      '大气污染监测',
-      '气候变化适应',
-      '碳足迹评价',
-      '城市水环境治理',
-      '土壤污染修复',
-      '工业生态学',
-      '资源环境承载力',
-      '海洋生态保护',
-      '清洁生产',
-      '零污染治理',
-    ],
-  },
 ];
 
 function requireEnv(name: string): string {
@@ -413,7 +361,8 @@ function summarizeSearchResponse(value: unknown): string {
 
 function summarizeGraphPathItem(item: unknown): string {
   const record = item as Record<string, unknown>;
-  const rawPath = (record?._fields as unknown[])?.[0] ??
+  const rawPath =
+    (record?._fields as unknown[])?.[0] ??
     (record?.path as Record<string, unknown> | undefined) ??
     record;
   const path = rawPath as Record<string, unknown> | undefined;
@@ -430,8 +379,9 @@ function summarizeGraphPathItem(item: unknown): string {
   }
 
   for (const segment of segments) {
-    const endProps = ((segment as Record<string, unknown>)?.end as Record<string, unknown> | undefined)
-      ?.properties as Record<string, unknown> | undefined;
+    const endProps = (
+      (segment as Record<string, unknown>)?.end as Record<string, unknown> | undefined
+    )?.properties as Record<string, unknown> | undefined;
     const endId = truncateText(endProps?.id ?? endProps?.name ?? '', 80);
     if (endId) {
       nodes.push(endId);
@@ -469,7 +419,10 @@ function collectGraphNodes(
 
   const name = truncateText(node.name ?? node.node_id ?? '', 80);
   const relations = Array.isArray(node.relations)
-    ? (node.relations as unknown[]).map((relation) => truncateText(relation, 40)).filter(Boolean).join(', ')
+    ? (node.relations as unknown[])
+        .map((relation) => truncateText(relation, 40))
+        .filter(Boolean)
+        .join(', ')
     : '';
 
   out.push(relations ? `${name} [${relations}]` : name);
@@ -490,7 +443,9 @@ function summarizeGraphGenerateResponse(value: unknown): string {
 
   const nodes: string[] = [];
   collectGraphNodes(value as Record<string, unknown>, nodes, 0, 2, 12);
-  return nodes.length > 0 ? nodes.map((node, index) => `${index + 1}. NODE: ${node}`).join('\n') : 'Empty graph.';
+  return nodes.length > 0
+    ? nodes.map((node, index) => `${index + 1}. NODE: ${node}`).join('\n')
+    : 'Empty graph.';
 }
 
 function summarizeResponse(kind: FunctionKind, value: unknown): string {
@@ -549,7 +504,10 @@ async function waitForServerReady(timeoutMs = 30000): Promise<void> {
   throw new Error('Timed out waiting for function server to become ready.');
 }
 
-async function startFunctionServer(workdir: string, functionName: string): Promise<Deno.ChildProcess> {
+async function startFunctionServer(
+  workdir: string,
+  functionName: string,
+): Promise<Deno.ChildProcess> {
   const env = {
     ...Deno.env.toObject(),
   };
@@ -594,7 +552,11 @@ async function stopFunctionServer(child: Deno.ChildProcess): Promise<void> {
   await sleep(500);
 }
 
-async function invokeFunction(spec: FunctionSpec, query: string, apiKey: string): Promise<QueryRunResult> {
+async function invokeFunction(
+  spec: FunctionSpec,
+  query: string,
+  apiKey: string,
+): Promise<QueryRunResult> {
   try {
     const response = await fetch(SERVER_URL, {
       method: 'POST',
@@ -720,8 +682,10 @@ function summarizeJudgments(judgments: QueryJudgment[]) {
 
   return {
     ...summary,
-    current_avg: judgments.length > 0 ? Number((summary.current_score_sum / judgments.length).toFixed(2)) : 0,
-    baseline_avg: judgments.length > 0 ? Number((summary.baseline_score_sum / judgments.length).toFixed(2)) : 0,
+    current_avg:
+      judgments.length > 0 ? Number((summary.current_score_sum / judgments.length).toFixed(2)) : 0,
+    baseline_avg:
+      judgments.length > 0 ? Number((summary.baseline_score_sum / judgments.length).toFixed(2)) : 0,
   };
 }
 
@@ -774,12 +738,11 @@ async function main() {
   const apiKey = requireEnv('X_API_KEY');
   const limitArg = Deno.args.find((argument) => argument.startsWith('--limit='));
   const queryLimit = limitArg ? Number(limitArg.split('=')[1]) : null;
-  const requestedFunctions = new Set(
-    Deno.args.filter((argument) => argument !== limitArg),
-  );
-  const specs = requestedFunctions.size > 0
-    ? FUNCTION_SPECS.filter((spec) => requestedFunctions.has(spec.name))
-    : FUNCTION_SPECS;
+  const requestedFunctions = new Set(Deno.args.filter((argument) => argument !== limitArg));
+  const specs =
+    requestedFunctions.size > 0
+      ? FUNCTION_SPECS.filter((spec) => requestedFunctions.has(spec.name))
+      : FUNCTION_SPECS;
 
   if (specs.length === 0) {
     throw new Error('No matching function specs found for the provided arguments.');
@@ -788,14 +751,25 @@ async function main() {
   const evaluations: FunctionEvaluation[] = [];
 
   for (const spec of specs) {
-    const effectiveSpec = queryLimit && Number.isFinite(queryLimit) && queryLimit > 0
-      ? { ...spec, queries: spec.queries.slice(0, queryLimit) }
-      : spec;
+    const effectiveSpec =
+      queryLimit && Number.isFinite(queryLimit) && queryLimit > 0
+        ? { ...spec, queries: spec.queries.slice(0, queryLimit) }
+        : spec;
 
     console.log(`Running ${effectiveSpec.name} with ${effectiveSpec.queries.length} queries...`);
 
-    const currentResults = await collectResultsForVariant(effectiveSpec, CURRENT_WORKDIR, 'current', apiKey);
-    const baselineResults = await collectResultsForVariant(effectiveSpec, BASELINE_WORKDIR, 'baseline', apiKey);
+    const currentResults = await collectResultsForVariant(
+      effectiveSpec,
+      CURRENT_WORKDIR,
+      'current',
+      apiKey,
+    );
+    const baselineResults = await collectResultsForVariant(
+      effectiveSpec,
+      BASELINE_WORKDIR,
+      'baseline',
+      apiKey,
+    );
     console.log(`Judging ${effectiveSpec.name}...`);
     const judgments = await judgeFunction(effectiveSpec, currentResults, baselineResults);
 
@@ -844,8 +818,10 @@ async function main() {
         worse: overall.worse,
         tie: overall.tie,
         both_bad: overall.both_bad,
-        current_avg: overall.count > 0 ? Number((overall.current_score_sum / overall.count).toFixed(2)) : 0,
-        baseline_avg: overall.count > 0 ? Number((overall.baseline_score_sum / overall.count).toFixed(2)) : 0,
+        current_avg:
+          overall.count > 0 ? Number((overall.current_score_sum / overall.count).toFixed(2)) : 0,
+        baseline_avg:
+          overall.count > 0 ? Number((overall.baseline_score_sum / overall.count).toFixed(2)) : 0,
         reportPath,
       },
       null,

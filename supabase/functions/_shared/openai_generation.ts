@@ -264,33 +264,3 @@ export async function generatePerspectiveQuestions(
     userPrompt: `Perspective: ${normalizedPerspective}`,
   });
 }
-
-export interface GenerateEduGraphParams {
-  searchText: string;
-  root: number;
-  depth: number;
-  result: string;
-}
-
-export async function generateEduGraphStructure(
-  params: GenerateEduGraphParams,
-): Promise<KnowledgeGraphResponse> {
-  const searchText = normalizeText(params.searchText);
-  const result = normalizeText(params.result);
-
-  return await runStructuredOpenAITask<KnowledgeGraphResponse>({
-    schemaName: 'edu_graph_generate_response',
-    schema: knowledgeGraphSchema,
-    systemPrompt:
-      'Convert retrieved Neo4j results into a structured JSON graph with clear hierarchical relationships and logical connections between all levels.',
-    userPrompt: `There is retrieved result from a NEO4J database, using the following cypher query sentence.
-This result shows the tree-shape hierarchical knowledge structure from the root node related to "${searchText}", with elementId representing the unique identifier of each node.
-
-Cypher query:
-CALL db.index.fulltext.queryNodes('concept_fulltext_index','${searchText}') YIELD node,score WITH node AS startNode ORDER BY score DESC LIMIT ${params.root} MATCH path = (startNode)-[r:HAS_PART*..${params.depth}]->(endNode) WHERE NOT (endNode)-->() RETURN path
-
-Retrieved results:
-${result}`,
-    modelEnvName: 'OPENAI_CHAT_MODEL_LATEST',
-  });
-}
