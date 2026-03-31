@@ -1,85 +1,34 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import '@supabase/functions-js/edge-runtime.d.ts';
 
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { ChatOpenAI } from '@langchain/openai';
+import { runStructuredOpenAITask } from './openai_structured_task.ts';
+import {
+  buildMultilingualQuerySystemPrompt,
+  MultilingualQueryProfile,
+  multilingualQuerySchema,
+  multilingualQueryWithAliasesSchema,
+  QueryPack,
+  sanitizeMultilingualQueryPack,
+} from './search_query_utils.ts';
 
-const openai_api_key = Deno.env.get('OPENAI_API_KEY') ?? '';
-// const openai_chat_model = Deno.env.get('OPENAI_CHAT_MODEL') ?? '';
-
-const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
-  temperature: 0,
-  apiKey: openai_api_key,
-});
-
-const querySchema = {
-  type: 'object',
-  properties: {
-    semantic_query: {
-      title: 'SemanticQuery',
-      description: "A query for semantic retrieval in query's original language.",
-      type: 'string',
-    },
-    fulltext_query_eng: {
-      title: 'FulltextQueryENG',
-      description:
-        'A query list for full-text search in English, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_sim: {
-      title: 'FulltextQueryChiSim',
-      description:
-        'A query list for full-text search in Simplified Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-    fulltext_query_chi_tra: {
-      title: 'FulltextQueryChiTra',
-      description:
-        'A query list for full-text search in Traditional Chinese, including original names and synonyms.',
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-    },
-  },
-  required: [
-    'semantic_query',
-    'fulltext_query_eng',
-    'fulltext_query_chi_sim',
-    'fulltext_query_chi_tra',
-  ],
-};
-
-interface QueryResponse {
-  semantic_query: string;
-  fulltext_query_eng: string[];
-  fulltext_query_chi_sim: string[];
-  fulltext_query_chi_tra: string[];
+interface GenerateMultilingualQueryOptions {
+  profile?: MultilingualQueryProfile;
 }
 
-const modelWithStructuredOutput = model.withStructuredOutput(querySchema);
+async function generateQuery(query: string, options?: GenerateMultilingualQueryOptions) {
+  const queryText = typeof query === 'string' ? query.trim() : String(query ?? '').trim();
+  const profile = options?.profile ?? 'default';
+  const useAliasSchema = profile !== 'default';
+  const raw = await runStructuredOpenAITask<QueryPack>({
+    schemaName: useAliasSchema
+      ? `search_query_pack_generation_${profile}`
+      : 'search_query_pack_generation',
+    schema: useAliasSchema ? multilingualQueryWithAliasesSchema : multilingualQuerySchema,
+    systemPrompt: buildMultilingualQuerySystemPrompt({ profile }),
+    userPrompt: `Original query: ${queryText}`,
+  });
 
-const prompt = ChatPromptTemplate.fromMessages([
-  [
-    'system',
-    `Task: Transform original query into four specific queries: SemanticQuery, FulltextQueryENG, FulltextQueryChiSim and FulltextQueryChiTra.`,
-  ],
-  ['human', 'Original query: {input}'],
-]);
-
-const chain = prompt.pipe(modelWithStructuredOutput);
-
-async function generateQuery(query: string) {
-  const response = await chain.invoke({ input: query });
-  // console.log(response);
-  return response as QueryResponse;
+  return sanitizeMultilingualQueryPack(raw, queryText);
 }
 
 export default generateQuery;
