@@ -53,23 +53,395 @@ const opensearchClient = new Client({
   node: opensearch_domain,
 });
 
-const supabase = createClient(supabase_url, supabase_publishable_key);
+const supabaseClientOptions = {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+};
+
+function createSupabaseClient(accessToken?: string) {
+  return createClient(
+    supabase_url,
+    supabase_publishable_key,
+    accessToken
+      ? {
+          ...supabaseClientOptions,
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        }
+      : supabaseClientOptions,
+  );
+}
+
+const supabase = createSupabaseClient();
 
 const redis = new Redis({
   url: redis_url,
   token: redis_token,
 });
 
-type FilterType = { course: string[] } | Record<string | number | symbol, never>;
+const EDU_FILTER_FIELDS = [
+  'course',
+  'type',
+  'file_type',
+  'language',
+  'chapter_number',
+  'name',
+] as const;
+
+type EduFilterField = (typeof EDU_FILTER_FIELDS)[number];
+type SearchFilter = { course: string[] } | undefined;
+type MetadataFilter = Partial<Record<EduFilterField, Array<string | number>>>;
 type PCFilter = {
   $or: { course: string }[];
 };
 
-function filterToPCQuery(filter: FilterType): PCFilter {
+interface EduMetaRow {
+  course?: string | null;
+  type?: string | null;
+  file_type?: string | null;
+  language?: string | null;
+  chapter_number?: number | null;
+  name?: string | null;
+}
+
+interface FilterOption {
+  value: string | number;
+  count: number;
+}
+
+type UserScopedEduMetaAuthResult =
+  | { ok: true; client: ReturnType<typeof createSupabaseClient> }
+  | { ok: false; response: Response };
+
+class RequestValidationError extends Error {}
+
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    headers.set(key, value);
+  }
+  headers.set('Content-Type', 'application/json');
+
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers,
+  });
+}
+
+function isEduFilterField(value: string): value is EduFilterField {
+  return EDU_FILTER_FIELDS.includes(value as EduFilterField);
+}
+
+function normalizeStringList(rawValue: unknown): string[] {
+  if (rawValue === undefined || rawValue === null) {
+    return [];
+  }
+
+  const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+  const normalized = new Map<string, string>();
+
+  for (const value of values) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    const text = String(value).trim();
+    if (!text) {
+      continue;
+    }
+
+    normalized.set(text, text);
+  }
+
+  return [...normalized.values()];
+}
+
+function normalizeSearchFilter(rawFilter: unknown): SearchFilter {
+  if (!rawFilter || typeof rawFilter !== 'object' || Array.isArray(rawFilter)) {
+    return undefined;
+  }
+
+  const course = normalizeStringList((rawFilter as Record<string, unknown>).course);
+  if (course.length === 0) {
+    return undefined;
+  }
+
+  return { course };
+}
+
+function hasCourseFilter(filter: SearchFilter): filter is { course: string[] } {
+  return !!filter && filter.course.length > 0;
+}
+
+function filterToPCQuery(filter: { course: string[] }): PCFilter {
   const { course } = filter;
   const andConditions = course.map((c) => ({ course: c }));
 
   return { $or: andConditions };
+}
+
+function normalizeRequestedFields(rawFields: unknown): EduFilterField[] {
+  if (rawFields === undefined) {
+    return [...EDU_FILTER_FIELDS];
+  }
+
+  if (!Array.isArray(rawFields)) {
+    throw new RequestValidationError('`fields` must be an array of supported field names.');
+  }
+
+  const uniqueFields = new Set<EduFilterField>();
+
+  for (const field of rawFields) {
+    if (typeof field !== 'string' || !isEduFilterField(field)) {
+      throw new RequestValidationError(
+        `Unsupported field: ${String(field)}. Supported fields: ${EDU_FILTER_FIELDS.join(', ')}`,
+      );
+    }
+    uniqueFields.add(field);
+  }
+
+  if (uniqueFields.size === 0) {
+    throw new RequestValidationError('`fields` must contain at least one supported field.');
+  }
+
+  return [...uniqueFields];
+}
+
+function normalizeMetadataFilterValue(
+  field: EduFilterField,
+  value: unknown,
+): string | number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (field === 'chapter_number') {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      return value;
+    }
+
+    const text = String(value).trim();
+    if (!text) {
+      return null;
+    }
+
+    const parsed = Number(text);
+    if (!Number.isInteger(parsed)) {
+      throw new RequestValidationError('`filter.chapter_number` must contain integers.');
+    }
+
+    return parsed;
+  }
+
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
+function normalizeMetadataFilter(rawFilter: unknown): MetadataFilter {
+  if (rawFilter === undefined || rawFilter === null) {
+    return {};
+  }
+
+  if (typeof rawFilter !== 'object' || Array.isArray(rawFilter)) {
+    throw new RequestValidationError('`filter` must be an object.');
+  }
+
+  const normalizedFilter: MetadataFilter = {};
+
+  for (const [field, rawValues] of Object.entries(rawFilter as Record<string, unknown>)) {
+    if (!isEduFilterField(field)) {
+      throw new RequestValidationError(
+        `Unsupported filter field: ${field}. Supported fields: ${EDU_FILTER_FIELDS.join(', ')}`,
+      );
+    }
+
+    const values = Array.isArray(rawValues) ? rawValues : [rawValues];
+    const normalizedValues = new Map<string, string | number>();
+
+    for (const value of values) {
+      const normalizedValue = normalizeMetadataFilterValue(field, value);
+      if (normalizedValue === null) {
+        continue;
+      }
+
+      normalizedValues.set(`${typeof normalizedValue}:${String(normalizedValue)}`, normalizedValue);
+    }
+
+    if (normalizedValues.size > 0) {
+      normalizedFilter[field] = [...normalizedValues.values()];
+    }
+  }
+
+  return normalizedFilter;
+}
+
+function buildEduMetaSelect(fields: EduFilterField[]): string {
+  return [...new Set(fields)].join(',');
+}
+
+function matchesMetadataFilter(row: EduMetaRow, filter: MetadataFilter): boolean {
+  for (const field of Object.keys(filter) as EduFilterField[]) {
+    const acceptedValues = filter[field];
+    if (!acceptedValues || acceptedValues.length === 0) {
+      continue;
+    }
+
+    const rowValue = row[field];
+    if (rowValue === undefined || rowValue === null) {
+      return false;
+    }
+
+    if (!acceptedValues.some((acceptedValue) => acceptedValue === rowValue)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function buildFieldOptions(rows: EduMetaRow[], field: EduFilterField): FilterOption[] {
+  const options = new Map<string, FilterOption>();
+
+  for (const row of rows) {
+    const value = row[field];
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
+
+    const key = `${typeof value}:${String(value)}`;
+    const existing = options.get(key);
+
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+
+    options.set(key, {
+      value,
+      count: 1,
+    });
+  }
+
+  return [...options.values()].sort((a, b) => {
+    if (field === 'chapter_number') {
+      return Number(a.value) - Number(b.value);
+    }
+
+    return String(a.value).localeCompare(String(b.value), 'zh-Hans-CN');
+  });
+}
+
+async function listFilterOptions(
+  supabaseClient: ReturnType<typeof createSupabaseClient>,
+  rawFields: unknown,
+  rawFilter: unknown,
+) {
+  const requestedFields = normalizeRequestedFields(rawFields);
+  const normalizedFilter = normalizeMetadataFilter(rawFilter);
+  const selectedFields = [
+    ...requestedFields,
+    ...(Object.keys(normalizedFilter) as EduFilterField[]),
+  ];
+
+  const { data, error } = await supabaseClient
+    .from('edu_meta')
+    .select(buildEduMetaSelect(selectedFields));
+
+  if (error) {
+    throw new Error(`Failed to query edu_meta: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as EduMetaRow[];
+  const matchedRows = rows.filter((row) => matchesMetadataFilter(row, normalizedFilter));
+
+  return {
+    action: 'list_filter_options',
+    supported_fields: [...EDU_FILTER_FIELDS],
+    requested_fields: requestedFields,
+    total_records: rows.length,
+    matched_records: matchedRows.length,
+    applied_filter: normalizedFilter,
+    options: Object.fromEntries(
+      requestedFields.map((field) => [field, buildFieldOptions(matchedRows, field)]),
+    ),
+  };
+}
+
+function normalizeRequiredQuery(rawQuery: unknown): string {
+  if (typeof rawQuery !== 'string' || !rawQuery.trim()) {
+    throw new RequestValidationError('`query` must be a non-empty string.');
+  }
+
+  return rawQuery.trim();
+}
+
+function normalizeNonNegativeInteger(
+  rawValue: unknown,
+  defaultValue: number,
+  fieldName: string,
+): number {
+  if (rawValue === undefined || rawValue === null) {
+    return defaultValue;
+  }
+
+  const value = typeof rawValue === 'number' ? rawValue : Number(String(rawValue).trim());
+  if (!Number.isInteger(value) || value < 0) {
+    throw new RequestValidationError(`\`${fieldName}\` must be a non-negative integer.`);
+  }
+
+  return value;
+}
+
+async function createUserScopedEduMetaClient(
+  email: string,
+  password: string,
+): Promise<UserScopedEduMetaAuthResult> {
+  if (!email || !password) {
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  const authClient = createSupabaseClient();
+  const { data, error } = await authClient.auth.signInWithPassword({
+    email: email,
+    password: password,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  if (data.user?.role !== 'authenticated') {
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'You are not an authenticated user.' }, { status: 401 }),
+    };
+  }
+
+  const accessToken = data.session?.access_token;
+  if (!accessToken) {
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  await redis.setex(email, 3600, '');
+
+  return {
+    ok: true,
+    client: createSupabaseClient(accessToken),
+  };
 }
 
 function getIdRange(id: string, extK: number): Set<string> {
@@ -99,7 +471,7 @@ const search = async (
   full_text_query: string[],
   topK: number,
   extK: number,
-  filter: FilterType,
+  filter: SearchFilter,
 ) => {
   // console.log(query, topK, filter);
 
@@ -110,14 +482,14 @@ const search = async (
   // console.log(filter);
 
   const body = {
-    query: filter
+    query: hasCourseFilter(filter)
       ? {
           bool: {
             should: full_text_query.map((query) => ({
               match: { text: query },
             })),
             minimum_should_match: 1,
-            filter: [{ terms: filter }],
+            filter: [{ terms: { course: filter.course } }],
           },
         }
       : {
@@ -150,7 +522,7 @@ const search = async (
     includeValues: false,
   };
 
-  if (filter) {
+  if (hasCourseFilter(filter)) {
     queryOptions.filter = filterToPCQuery(filter);
   }
 
@@ -335,6 +707,18 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let body: Record<string, unknown>;
+  try {
+    const parsedBody = await req.json();
+    if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+      return jsonResponse({ error: 'Request body must be a JSON object.' }, { status: 400 });
+    }
+
+    body = parsedBody as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: 'Request body must be valid JSON.' }, { status: 400 });
+  }
+
   let email = req.headers.get('email') ?? '';
   let password = req.headers.get('password') ?? '';
 
@@ -348,10 +732,50 @@ Deno.serve(async (req) => {
       if (!email) email = credentials.email;
       if (!password) password = credentials.password;
     } else {
-      return new Response(JSON.stringify({ error: 'Invalid API Key' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Invalid API Key' }, { status: 401 });
+    }
+  }
+
+  const action = body.action;
+
+  if (action !== undefined && action !== 'list_filter_options') {
+    return jsonResponse(
+      {
+        error: `Unsupported action: ${String(action)}`,
+        supported_actions: ['list_filter_options'],
+      },
+      { status: 400 },
+    );
+  }
+
+  if (action === 'list_filter_options') {
+    try {
+      const authResult = await createUserScopedEduMetaClient(email, password);
+      if (!authResult.ok) {
+        return authResult.response;
+      }
+
+      const result = await listFilterOptions(authResult.client, body.fields, body.filter);
+      logInsert(email, Date.now(), 'edu_search:list_filter_options');
+
+      return jsonResponse(result);
+    } catch (error) {
+      if (error instanceof RequestValidationError) {
+        return jsonResponse(
+          {
+            error: error.message,
+            supported_fields: [...EDU_FILTER_FIELDS],
+          },
+          { status: 400 },
+        );
+      }
+
+      return jsonResponse(
+        {
+          error: error instanceof Error ? error.message : 'Failed to list filter options.',
+        },
+        { status: 500 },
+      );
     }
   }
 
@@ -367,8 +791,23 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { query, filter, topK = 5, extK = 0 } = await req.json();
-  // console.log(query, filter);
+  let query = '';
+  let filter: SearchFilter = undefined;
+  let topK = 5;
+  let extK = 0;
+
+  try {
+    query = normalizeRequiredQuery(body.query);
+    filter = normalizeSearchFilter(body.filter);
+    topK = normalizeNonNegativeInteger(body.topK, 5, 'topK');
+    extK = normalizeNonNegativeInteger(body.extK, 0, 'extK');
+  } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return jsonResponse({ error: error.message }, { status: 400 });
+    }
+
+    throw error;
+  }
 
   logInsert(email, Date.now(), 'edu_search', topK, extK);
 
@@ -383,7 +822,5 @@ Deno.serve(async (req) => {
   );
   // console.log(result);
 
-  return new Response(JSON.stringify(result), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return jsonResponse(result);
 });
