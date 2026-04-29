@@ -1,6 +1,28 @@
+---
+docType: guide
+scope: repo
+status: current
+authoritative: true
+owner: edge-function
+language: en
+whenToUse: "When setting up, serving, testing, or deploying TianGong AI Edge Functions."
+whenToUpdate: "When local setup, runtime commands, environment templates, deployment steps, or exposed functions change."
+checkPaths:
+  - AGENTS.md
+  - .docpact/config.yaml
+  - package.json
+  - deno.json
+  - Dockerfile
+  - .env.example
+  - supabase/**
+  - test.example.http
+lastReviewedAt: 2026-04-29
+lastReviewedCommit: 6769a7b7210a6386d6dae6695bdd9010a1185614
+---
+
 # TianGong-AI-Edge-Functions
 
-## Env Preparing (Docker Engine MUST be Running)
+## Env Preparing
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
@@ -29,7 +51,8 @@ npm run lint
 deno info
 ```
 
-Rename the `.env.example` to `.env.local` and fill in the the values before the `npx supabase start` command.
+Copy `.env.example` to `.env.local` for root-level tooling, and copy
+`supabase/.env.example` to `supabase/.env.local` before running `npm start`.
 
 ## Local Development
 
@@ -64,6 +87,10 @@ Edit .env file refer to .env.example then use REST Client extension of VSCode to
 
 ## Docker Deployment on AWS ECS Fargate
 
+This path is not currently validated: `Dockerfile` references
+`supabase/functions/main` and `supabase/functions/import_map.json`, which are
+not present.
+
 ```bash
 docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v20240715 .
 
@@ -95,6 +122,8 @@ npx supabase functions deploy report_search --project-ref qyyqlnwqwgvzxnccnbgm -
 npx supabase functions deploy standard_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
 npx supabase functions deploy textbook_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
 npx supabase functions deploy green_deal_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
+npx supabase functions deploy bigquery_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
+npx supabase functions deploy info_extract --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
 
 npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
 npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
