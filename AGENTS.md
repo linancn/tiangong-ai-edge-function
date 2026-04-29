@@ -10,6 +10,7 @@ whenToUpdate: "When repo entry points, workflow commands, docpact config, deploy
 checkPaths:
   - AGENTS.md
   - .docpact/config.yaml
+  - .github/workflows/docpact.yml
   - _docs/**
 lastReviewedAt: 2026-04-29
 lastReviewedCommit: 6769a7b7210a6386d6dae6695bdd9010a1185614
