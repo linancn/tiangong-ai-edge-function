@@ -1,0 +1,147 @@
+version: 1
+layout: repo
+lastReviewedAt: "2026-04-29"
+lastReviewedCommit: "6769a7b7210a6386d6dae6695bdd9010a1185614"
+
+repo:
+  id: edge-function
+
+routing:
+  intents:
+    governance:
+      paths:
+        - AGENTS.md
+        - .docpact/**
+        - _docs/**
+    architecture:
+      paths:
+        - supabase/functions/**
+        - supabase/config.toml
+        - supabase/seed.sql
+        - scripts/**
+    operations:
+      paths:
+        - README.md
+        - package.json
+        - deno.json
+        - Dockerfile
+        - .env.example
+        - supabase/.env.example
+        - test.example.http
+
+coverage:
+  include:
+    - AGENTS.md
+    - README.md
+    - .docpact/**
+    - _docs/**
+    - package.json
+    - deno.json
+    - Dockerfile
+    - .env.example
+    - supabase/.env.example
+    - supabase/config.toml
+    - supabase/seed.sql
+    - supabase/functions/**
+    - scripts/**
+    - test.example.http
+  exclude:
+    - .git/**
+    - .docpact/runs/**
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+    - .DS_Store
+    - "**/.DS_Store"
+
+docInventory:
+  include:
+    - AGENTS.md
+    - README.md
+    - .docpact/config.yaml
+    - _docs/**
+  exclude:
+    - .git/**
+    - .docpact/runs/**
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+
+freshness:
+  warn_after_commits: 50
+  warn_after_days: 90
+  critical_after_days: 180
+
+rules:
+  - id: edge-function-governance
+    scope: repo
+    repo: edge-function
+    triggers:
+      - path: AGENTS.md
+        kind: agent-contract
+      - path: .docpact/config.yaml
+        kind: machine-contract
+      - path: _docs/**
+        kind: governed-docs
+      - path: README.md
+        kind: repo-entry
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: _docs/README.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+      - path: _docs/standards/documentation-standards.md
+        mode: review_or_update
+    reason: Repository entry guidance, governance config, and documentation standards must remain aligned.
+  - id: edge-function-api-surface
+    scope: repo
+    repo: edge-function
+    triggers:
+      - path: supabase/functions/**
+        kind: edge-function-source
+      - path: supabase/config.toml
+        kind: supabase-config
+      - path: supabase/seed.sql
+        kind: database-seed
+      - path: scripts/**
+        kind: support-script
+    requiredDocs:
+      - path: _docs/architecture/repo-architecture.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+      - path: README.md
+        mode: review_or_update
+    reason: Edge function behavior, Supabase configuration, and support scripts must stay synchronized with architecture and operations docs.
+  - id: edge-function-operations
+    scope: repo
+    repo: edge-function
+    triggers:
+      - path: package.json
+        kind: node-workflow
+      - path: deno.json
+        kind: deno-workflow
+      - path: Dockerfile
+        kind: deployment-container
+      - path: .env.example
+        kind: environment-template
+      - path: supabase/.env.example
+        kind: environment-template
+      - path: test.example.http
+        kind: api-test-example
+    requiredDocs:
+      - path: README.md
+        mode: review_or_update
+      - path: _docs/runbooks/development.md
+        mode: review_or_update
+      - path: _docs/contracts/repo-contract.md
+        mode: review_or_update
+    reason: Runtime commands, environment templates, deployment packaging, and test examples define operator-facing behavior.
