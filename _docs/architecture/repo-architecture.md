@@ -28,8 +28,8 @@ generation APIs. Local development is driven by the Supabase CLI through
 
 - `supabase/functions/_shared/**`: shared function utilities.
 - `supabase/functions/*_search/**`: search endpoints, including ESG, science,
-  education, reports, standards, patents, textbooks, Green Deal, internal
-  content, and BigQuery-backed search.
+  KB course, education, reports, standards, patents, textbooks, Green Deal,
+  internal content, and BigQuery-backed search.
 - `supabase/functions/info_extract/**`: information extraction endpoint.
 - `supabase/functions/question_generation/**`: question generation endpoint.
 - `supabase/functions/kg_generate/**`: knowledge graph generation endpoint.
