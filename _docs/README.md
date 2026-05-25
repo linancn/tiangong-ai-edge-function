@@ -5,15 +5,15 @@ status: current
 authoritative: true
 owner: edge-function
 language: en
-whenToUse: "When navigating edge-function repository documentation."
-whenToUpdate: "When repository documentation layers, key docs, or governance routing change."
+whenToUse: 'When navigating edge-function repository documentation.'
+whenToUpdate: 'When repository documentation layers, key docs, or governance routing change.'
 checkPaths:
   - AGENTS.md
   - .docpact/config.yaml
   - .github/workflows/docpact.yml
   - _docs/**
-lastReviewedAt: 2026-05-22
-lastReviewedCommit: a0929d5a40efe3ccb4627551555e325a73801d73
+lastReviewedAt: 2026-05-23
+lastReviewedCommit: 23798e03c82dd26645517ff13f4f3a358daf0dcc
 ---
 
 # Edge Function Documentation
@@ -24,16 +24,12 @@ This directory contains the repo-local source documents governed by docpact.
 
 - Layer 0: `AGENTS.md` for mandatory agent entry guidance.
 - Layer 1: `.docpact/config.yaml` for machine-readable governance.
-- CI: `.github/workflows/docpact.yml` for config validation and PR
-  documentation lint.
-- Layer 2: current contracts, architecture, standards, and runbooks under
-  `_docs/**`.
+- CI: `.github/workflows/docpact.yml` for config validation and PR documentation lint.
+- Layer 2: current contracts, architecture, standards, and runbooks under `_docs/**`.
 
 ## Current Documents
 
-- `_docs/contracts/repo-contract.md`: repository ownership, boundaries, and
-  completion rules.
+- `_docs/contracts/repo-contract.md`: repository ownership, boundaries, and completion rules.
 - `_docs/architecture/repo-architecture.md`: Supabase Edge Function topology.
-- `_docs/runbooks/development.md`: local development, validation, and deployment
-  workflow.
+- `_docs/runbooks/development.md`: local development, validation, and deployment workflow.
 - `_docs/standards/documentation-standards.md`: repo-local documentation rules.

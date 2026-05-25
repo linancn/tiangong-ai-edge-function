@@ -272,25 +272,32 @@ curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/edu_search' \
 ============================================================
 Course
 ============================================================
-### @name course：local,retrieve,email-password
+### @name course：local，没有filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/course_search' \
     --header 'Content-Type: application/json' \
     --header 'email: {{$dotenv EMAIL}}' \
     --header 'password: {{$dotenv PASSWORD}}' \
-    --data '{"query":"这门课程如何讨论知识组织？", "mode":"retrieve", "rewrite":"auto", "scope":{"collection_path":"/course/thu_humanities"}, "topK":5, "extK":1}'
+    --data '{"query":"这门课程如何讨论知识组织？", "topK":5, "extK":1}'
 
-### @name course：local,retrieve,bearer
+### @name course：local，tag_filter
 curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/course_search' \
     --header 'Content-Type: application/json' \
-    --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
-    --data '{"query":"这门课程如何讨论知识组织？", "mode":"retrieve", "rewrite":"auto", "scope":{"collection_path":"/course/thu_humanities"}, "filters":{"tags":["thu_humanities"]}, "topK":5, "extK":1}'
+    --header 'email: {{$dotenv EMAIL}}' \
+    --header 'password: {{$dotenv PASSWORD}}' \
+    --data '{"query":"这门课程如何讨论知识组织？", "filter":{"tags":["thu_humanities"]}, "topK":5, "extK":1}'
 
-### @name course：remote,answer,bearer
+### @name course：local，tag_filter,x-api-key
+curl -i --location --request POST '{{$dotenv LOCAL_ENDPOINT}}/course_search' \
+    --header 'Content-Type: application/json' \
+    --header 'x-api-key: {{$dotenv X_API_KEY}}' \
+    --data '{"query":"这门课程如何讨论知识组织？", "filter":{"tags":["thu_humanities"]}, "topK":5, "extK":1}'
+
+### @name course：remote,tag_filter,bearer
 curl -i --location --request POST '{{$dotenv REMOTE_ENDPOINT}}/course_search' \
     --header 'Content-Type: application/json' \
     --header 'Authorization: Bearer {{$dotenv REMOTE_BEARER_TOKEN}}' \
     --header 'x-region: {{$dotenv X_REGION}}' \
-    --data '{"query":"这门课程如何讨论知识组织？", "mode":"answer", "rewrite":"auto", "scope":{"collection_path":"/course/thu_humanities"}, "topK":5, "extK":1}'
+    --data '{"query":"这门课程如何讨论知识组织？", "filter":{"tags":["thu_humanities"]}, "topK":5, "extK":1}'
 
 
 ============================================================

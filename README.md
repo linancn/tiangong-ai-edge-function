@@ -5,8 +5,8 @@ status: current
 authoritative: true
 owner: edge-function
 language: en
-whenToUse: "When setting up, serving, testing, or deploying TianGong AI Edge Functions."
-whenToUpdate: "When local setup, runtime commands, environment templates, deployment steps, or exposed functions change."
+whenToUse: 'When setting up, serving, testing, or deploying TianGong AI Edge Functions.'
+whenToUpdate: 'When local setup, runtime commands, environment templates, deployment steps, or exposed functions change.'
 checkPaths:
   - AGENTS.md
   - .docpact/config.yaml
@@ -51,8 +51,7 @@ npm run lint
 deno info
 ```
 
-Copy `.env.example` to `.env.local` for root-level tooling, and copy
-`supabase/.env.example` to `supabase/.env.local` before running `npm start`.
+Copy `.env.example` to `.env.local` for root-level tooling, and copy `supabase/.env.example` to `supabase/.env.local` before running `npm start`.
 
 ## Local Development
 
@@ -85,11 +84,28 @@ npx supabase functions serve --env-file ./supabase/.env.local --no-verify-jwt
 
 Edit .env file refer to .env.example then use REST Client extension of VSCode to test the API in test.local.http.
 
+## Query Rewrite Model Evaluation
+
+`scripts/eval_query_rewrite_models.ts` compares `OPENAI_CHAT_MODEL` candidates for query rewrite only. It reuses the production rewrite prompts and schemas, keeps `gpt-4.1-mini` as the baseline, and writes JSON plus Markdown reports under `/tmp/tiangong-eval` by default.
+
+```bash
+# Fast compatibility check across baseline and candidate models.
+set -a; . ./supabase/.env.local; set +a
+deno run --allow-env --allow-net --allow-read --allow-write \
+  --config supabase/functions/deno.json \
+  scripts/eval_query_rewrite_models.ts --dry-run
+
+# Full run: all bundled search queries, repeated three times per model.
+deno run --allow-env --allow-net --allow-read --allow-write \
+  --config supabase/functions/deno.json \
+  scripts/eval_query_rewrite_models.ts --include-optional
+```
+
+The script evaluates `gpt-4.1-nano`, `gpt-4o-mini`, and GPT-5 nano-family candidates with `reasoning.effort=none` when configured. It does not change the production `OPENAI_CHAT_MODEL`; use the report recommendation before making a separate config change.
+
 ## Docker Deployment on AWS ECS Fargate
 
-This path is not currently validated: `Dockerfile` references
-`supabase/functions/main` and `supabase/functions/import_map.json`, which are
-not present.
+This path is not currently validated: `Dockerfile` references `supabase/functions/main` and `supabase/functions/import_map.json`, which are not present.
 
 ```bash
 docker build -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v20240715 .

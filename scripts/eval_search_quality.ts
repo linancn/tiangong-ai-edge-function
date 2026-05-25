@@ -1,8 +1,8 @@
 import { runStructuredOpenAITask } from '../supabase/functions/_shared/openai_structured_task.ts';
 
-type FunctionKind = 'search' | 'graph_search' | 'graph_generate';
+export type FunctionKind = 'search' | 'graph_search' | 'graph_generate';
 
-interface FunctionSpec {
+export interface FunctionSpec {
   name: string;
   kind: FunctionKind;
   queries: string[];
@@ -73,7 +73,7 @@ const JUDGMENT_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
-const FUNCTION_SPECS: FunctionSpec[] = [
+export const FUNCTION_SPECS: FunctionSpec[] = [
   {
     name: 'green_deal_search',
     kind: 'search',

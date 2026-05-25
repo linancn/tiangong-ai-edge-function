@@ -103,6 +103,7 @@ export interface OpenAIStructuredOptions {
   model?: string;
   temperature?: number;
   baseUrl?: string;
+  reasoningEffort?: string;
 }
 
 export interface OpenAIStructuredRequest {
@@ -134,6 +135,9 @@ export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest
         { role: 'system', content: request.systemPrompt },
         { role: 'user', content: request.userPrompt },
       ],
+      ...(request.options?.reasoningEffort
+        ? { reasoning: { effort: request.options.reasoningEffort } }
+        : {}),
       text: {
         format: {
           type: 'json_schema',
