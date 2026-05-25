@@ -13,7 +13,7 @@ checkPaths:
   - .github/workflows/docpact.yml
   - _docs/**
 lastReviewedAt: 2026-05-25
-lastReviewedCommit: 6c691ef6a73e918fd65a72a4755233665eacfd4b
+lastReviewedCommit: 21e0a308a485d869e6618d286301230c779864f7
 ---
 
 # Edge Function Documentation Standards

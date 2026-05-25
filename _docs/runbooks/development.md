@@ -26,6 +26,7 @@ lastReviewedCommit: 6c691ef6a73e918fd65a72a4755233665eacfd4b
 3. Run `npm install`.
 4. Copy `.env.example` to `.env.local` for root-level tooling.
 5. Copy `supabase/.env.example` to `supabase/.env.local` before running `npm start`.
+6. Configure `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` when validating `course_search` Bearer authorization caching; leave them unset to force live RPC verification.
 
 ## Local Serve
 
