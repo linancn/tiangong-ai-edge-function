@@ -26,7 +26,7 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_COURSE_INDEX_NAME') ?? ''
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
-const supabase_service_role_key = Deno.env.get('REMOTE_SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const supabase_service_role_key = getSupabaseAdminKey();
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 
@@ -138,8 +138,36 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 
 function requireServiceRoleKey() {
   if (!supabase_service_role_key) {
-    throw new Error('Missing REMOTE_SUPABASE_SERVICE_ROLE_KEY.');
+    throw new Error('Missing Supabase admin key. Expected SUPABASE_SECRET_KEYS.default.');
   }
+}
+
+function trimEnv(value: string | undefined) {
+  return value?.trim() ?? '';
+}
+
+function getSupabaseSecretKeyFromDictionary() {
+  const rawSecretKeys = trimEnv(Deno.env.get('SUPABASE_SECRET_KEYS'));
+  if (!rawSecretKeys) {
+    return '';
+  }
+
+  try {
+    const secretKeys = JSON.parse(rawSecretKeys) as Record<string, unknown>;
+    const defaultKey = secretKeys.default;
+    if (typeof defaultKey === 'string' && defaultKey.trim()) {
+      return defaultKey.trim();
+    }
+
+    return '';
+  } catch (error) {
+    console.error('Failed to parse SUPABASE_SECRET_KEYS:', error);
+    return '';
+  }
+}
+
+function getSupabaseAdminKey() {
+  return getSupabaseSecretKeyFromDictionary();
 }
 
 function normalizeRequiredQuery(rawQuery: unknown): string {
