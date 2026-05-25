@@ -68,4 +68,4 @@ Use `--include-optional` for optional GPT-5 nano-family candidates and `--models
 
 ## Deployment
 
-Use the Supabase deployment commands in `README.md` for individual functions. Docker packaging is not currently a validated path: `Dockerfile` references `supabase/functions/main` and `supabase/functions/import_map.json`, which are not present. Fix and validate the Dockerfile before using Docker deployment commands.
+Use the Supabase deployment commands in `README.md` for individual functions. Pass `--import-map supabase/functions/deno.json` so the remote bundler resolves shared Deno and npm import aliases. Docker packaging is not currently a validated path: `Dockerfile` references `supabase/functions/main` and `supabase/functions/import_map.json`, which are not present. Fix and validate the Dockerfile before using Docker deployment commands.
