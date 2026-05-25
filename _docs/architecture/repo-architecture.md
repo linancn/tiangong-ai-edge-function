@@ -38,6 +38,8 @@ The repository packages Supabase Edge Functions for TianGong AI search and gener
 
 The repo uses Node.js tooling for local commands, Deno for Supabase function runtime behavior, and the Supabase CLI for serving and deployment. Function environment values are derived from `.env.example` and `supabase/.env.example`; real local and production secrets must not be committed.
 
+`course_search` performs Bearer API-key authorization inside the function through the `verify_kb_api_key` RPC. When `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` are configured, successful authorization contexts are cached for up to 15 minutes, capped by token expiry; Redis failures fall back to live RPC verification.
+
 ## Integration Points
 
 - MCP server calls these edge functions through configured Supabase deployment URLs.

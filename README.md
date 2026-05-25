@@ -42,7 +42,6 @@ npm start
 
 # Code Prettier
 npm run lint
-
 ```
 
 ## Deno info
@@ -55,10 +54,11 @@ Copy `.env.example` to `.env.local` for root-level tooling, and copy `supabase/.
 
 Most remote API examples use `x-api-key` for authentication. `course_search` remote examples use scoped bearer tokens so the function can verify `kb:read` and apply collection-scope restrictions through `verify_kb_api_key`.
 
+`course_search` can use `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` to cache successful Bearer API-key authorization contexts for 15 minutes. The cache is optional; when it is not configured or Redis is unavailable, the function falls back to the `verify_kb_api_key` RPC.
+
 ## Local Development
 
 ````bash
-
 Started supabase local development setup.
 
 ```bash
@@ -121,7 +121,6 @@ docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/supabase/edge-runtime:v
 aws ecs describe-task-definition --task-definition langserve:8
 
 aws ecs describe-tasks --cluster production --tasks cb72b1cf0ee240b3b3820f3e9431cb7c
-
 ```
 
 ## Remote Config
