@@ -5,15 +5,15 @@ status: current
 authoritative: true
 owner: edge-function
 language: en
-whenToUse: "When creating, moving, or reviewing edge-function documentation."
-whenToUpdate: "When documentation layers, metadata rules, or source-of-truth boundaries change."
+whenToUse: 'When creating, moving, or reviewing edge-function documentation.'
+whenToUpdate: 'When documentation layers, metadata rules, or source-of-truth boundaries change.'
 checkPaths:
   - AGENTS.md
   - .docpact/config.yaml
   - .github/workflows/docpact.yml
   - _docs/**
-lastReviewedAt: 2026-05-22
-lastReviewedCommit: a0929d5a40efe3ccb4627551555e325a73801d73
+lastReviewedAt: 2026-05-23
+lastReviewedCommit: 23798e03c82dd26645517ff13f4f3a358daf0dcc
 ---
 
 # Edge Function Documentation Standards
@@ -21,10 +21,8 @@ lastReviewedCommit: a0929d5a40efe3ccb4627551555e325a73801d73
 ## Layers
 
 - `AGENTS.md`: mandatory repo entry guidance for agents.
-- `.docpact/config.yaml`: machine-readable governance, routing, coverage, and
-  document inventory.
-- `.github/workflows/docpact.yml`: CI enforcement for config validation and PR
-  documentation lint.
+- `.docpact/config.yaml`: machine-readable governance, routing, coverage, and document inventory.
+- `.github/workflows/docpact.yml`: CI enforcement for config validation and PR documentation lint.
 - `_docs/contracts/**`: current constraints and ownership rules.
 - `_docs/architecture/**`: current service topology and integration facts.
 - `_docs/runbooks/**`: executable procedures.
@@ -34,7 +32,5 @@ lastReviewedCommit: a0929d5a40efe3ccb4627551555e325a73801d73
 
 - Keep deterministic governance facts in `.docpact/config.yaml`.
 - Keep explanatory architecture, API, and workflow details in `_docs/**`.
-- Update docs when public function names, request parameters, auth behavior,
-  response shape, deployment commands, or required environment variables change.
-- Do not duplicate root workspace branch policy or submodule integration policy
-  in this repository.
+- Update docs when public function names, request parameters, auth behavior, response shape, deployment commands, or required environment variables change.
+- Do not duplicate root workspace branch policy or submodule integration policy in this repository.

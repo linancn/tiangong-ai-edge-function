@@ -9,7 +9,6 @@ import { createClient } from '@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
 import generateQuery from '../_shared/generate_query.ts';
-import { getOpenAIClient } from '../_shared/openai_client.ts';
 import { generateEmbedding } from '../_shared/openai_embedding.ts';
 import { buildLexicalQueryCandidates } from '../_shared/search_query_utils.ts';
 import logInsert from '../_shared/supabase_function_log.ts';
@@ -27,12 +26,7 @@ const opensearch_index_name = Deno.env.get('OPENSEARCH_COURSE_INDEX_NAME') ?? ''
 const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
-const supabase_service_role_key =
-  Deno.env.get('REMOTE_SUPABASE_SERVICE_ROLE_KEY') ??
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
-  Deno.env.get('REMOTE_SUPABASE_SECRET_KEY') ??
-  Deno.env.get('SUPABASE_SECRET_KEY') ??
-  '';
+const supabase_service_role_key = Deno.env.get('REMOTE_SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 
@@ -86,11 +80,16 @@ function getServiceSupabase() {
   return serviceSupabase;
 }
 
-type QueryMode = 'retrieve' | 'answer';
-type RewriteMode = 'auto' | 'off' | 'force';
-type PrimitiveFilterValue = string | number | boolean;
-type FilterTerms = Record<string, PrimitiveFilterValue[]>;
-type FilterRanges = Record<string, { gte?: number; lte?: number }>;
+type FilterType = { [field: string]: string[] };
+type DateFilterType = { [field: string]: { gte?: number; lte?: number } };
+type FiltersItem = {
+  terms?: FilterType;
+  range?: DateFilterType;
+};
+type FiltersType = FiltersItem[];
+type PCFilter = {
+  $and: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }>;
+};
 
 interface SearchTarget {
   opensearchIndexName: string;
@@ -99,7 +98,6 @@ interface SearchTarget {
 }
 
 interface AuthContext {
-  actorId: string;
   subject: string;
   collectionScope: string[];
 }
@@ -117,10 +115,8 @@ interface CourseChunk {
 
 interface RequestBody {
   query: string;
-  mode: QueryMode;
-  rewrite: RewriteMode;
-  scope: Record<string, unknown>;
-  filters: Record<string, unknown>;
+  filter: FilterType;
+  datefilter: DateFilterType;
   topK: number;
   extK: number;
 }
@@ -142,7 +138,7 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 
 function requireServiceRoleKey() {
   if (!supabase_service_role_key) {
-    throw new Error('Missing REMOTE_SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY.');
+    throw new Error('Missing REMOTE_SUPABASE_SERVICE_ROLE_KEY.');
   }
 }
 
@@ -178,26 +174,6 @@ function normalizeNonNegativeInteger(rawValue: unknown, defaultValue: number, fi
   return value;
 }
 
-function normalizeMode(rawMode: unknown): QueryMode {
-  if (rawMode === undefined || rawMode === null || rawMode === '') {
-    return 'retrieve';
-  }
-  if (rawMode === 'retrieve' || rawMode === 'answer') {
-    return rawMode;
-  }
-  throw new RequestValidationError('`mode` must be "retrieve" or "answer".');
-}
-
-function normalizeRewrite(rawRewrite: unknown): RewriteMode {
-  if (rawRewrite === undefined || rawRewrite === null || rawRewrite === '') {
-    return 'auto';
-  }
-  if (rawRewrite === 'auto' || rawRewrite === 'off' || rawRewrite === 'force') {
-    return rawRewrite;
-  }
-  throw new RequestValidationError('`rewrite` must be "auto", "off", or "force".');
-}
-
 function normalizeObject(rawValue: unknown, fieldName: string): Record<string, unknown> {
   if (rawValue === undefined || rawValue === null) {
     return {};
@@ -211,10 +187,8 @@ function normalizeObject(rawValue: unknown, fieldName: string): Record<string, u
 function normalizeRequestBody(body: Record<string, unknown>): RequestBody {
   return {
     query: normalizeRequiredQuery(body.query),
-    mode: normalizeMode(body.mode),
-    rewrite: normalizeRewrite(body.rewrite),
-    scope: normalizeObject(body.scope, 'scope'),
-    filters: normalizeObject(body.filters ?? body.filter, 'filters'),
+    filter: normalizeFilter(normalizeObject(body.filter, 'filter')),
+    datefilter: normalizeDateFilter(body.datefilter),
     topK: normalizePositiveInteger(body.topK, 5, 'topK'),
     extK: normalizeNonNegativeInteger(body.extK, 0, 'extK'),
   };
@@ -241,16 +215,6 @@ function normalizeStringList(rawValue: unknown): string[] {
   return [...normalized.values()];
 }
 
-function normalizeUuidList(rawValue: unknown, fieldName: string): string[] {
-  const values = normalizeStringList(rawValue);
-  for (const value of values) {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
-      throw new RequestValidationError(`\`${fieldName}\` must contain UUID values.`);
-    }
-  }
-  return values;
-}
-
 function normalizeCollectionPath(path: string): string {
   const normalized = path.trim().replace(/^\/+|\/+$/g, '');
   if (
@@ -263,54 +227,8 @@ function normalizeCollectionPath(path: string): string {
   return `/${normalized}`;
 }
 
-function normalizeCollectionPaths(rawValue: unknown): string[] {
-  return normalizeStringList(rawValue).map(normalizeCollectionPath);
-}
-
-function isPathWithin(path: string, scopePath: string) {
-  return path === scopePath || path.startsWith(`${scopePath}/`);
-}
-
-function intersectScopePaths(requestedPaths: string[], tokenScopePaths: string[]) {
-  if (tokenScopePaths.length === 0) {
-    return requestedPaths;
-  }
-  if (requestedPaths.length === 0) {
-    return tokenScopePaths;
-  }
-
-  const effective = new Set<string>();
-  for (const requestedPath of requestedPaths) {
-    for (const tokenPath of tokenScopePaths) {
-      if (isPathWithin(requestedPath, tokenPath)) {
-        effective.add(requestedPath);
-      } else if (isPathWithin(tokenPath, requestedPath)) {
-        effective.add(tokenPath);
-      }
-    }
-  }
-  return [...effective];
-}
-
 function collectionPathToTag(path: string) {
   return path.split('/').filter(Boolean).at(-1) ?? '';
-}
-
-function mergeScopeIntoFilters(
-  rawFilters: Record<string, unknown>,
-  scope: Record<string, unknown>,
-  collectionScope: string[],
-) {
-  const filters = { ...rawFilters };
-  const requestedPaths = normalizeCollectionPaths(scope.collection_path ?? scope.collection_paths);
-  const effectivePaths = intersectScopePaths(requestedPaths, collectionScope);
-  const scopeTags = effectivePaths.map(collectionPathToTag).filter(Boolean);
-
-  if (scopeTags.length > 0) {
-    filters.tags = [...normalizeStringList(filters.tags), ...scopeTags];
-  }
-
-  return filters;
 }
 
 function extractBearerToken(authorization: string | null) {
@@ -357,7 +275,6 @@ async function authenticateRequest(req: Request): Promise<AuthContext | Response
     }
 
     return {
-      actorId: String(row.actor_user_id),
       subject: String(row.client_id ?? row.actor_user_id),
       collectionScope: Array.isArray(row.collection_scope)
         ? row.collection_scope.map((path: unknown) => normalizeCollectionPath(String(path)))
@@ -391,7 +308,6 @@ async function authenticateRequest(req: Request): Promise<AuthContext | Response
   }
 
   return {
-    actorId: data.user.id,
     subject: email,
     collectionScope: [],
   };
@@ -422,133 +338,98 @@ function getIdRange(id: string, extK: number): Set<string> {
   return idRange;
 }
 
-function normalizePrimitiveFilterValue(value: unknown): PrimitiveFilterValue | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  if (typeof value === 'string') {
-    const text = value.trim();
-    return text ? text : null;
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  return null;
-}
+function normalizeFilter(rawFilter: Record<string, unknown>): FilterType {
+  const filter: FilterType = {};
 
-function normalizeFilters(rawFilters: Record<string, unknown>) {
-  const allowedFilterFields = new Set(['tags', 'raw_relative_path', 'page_number']);
-  const terms: FilterTerms = {};
-  const range: FilterRanges = {};
-
-  for (const [field, rawValue] of Object.entries(rawFilters)) {
-    if (!allowedFilterFields.has(field)) {
-      throw new RequestValidationError(
-        `Unsupported filter field: ${field}. Supported fields: tags, raw_relative_path, page_number.`,
-      );
-    }
-
-    if (
-      field === 'page_number' &&
-      rawValue &&
-      typeof rawValue === 'object' &&
-      !Array.isArray(rawValue)
-    ) {
-      const rawRange = rawValue as Record<string, unknown>;
-      const pageRange: { gte?: number; lte?: number } = {};
-      for (const boundary of ['gte', 'lte'] as const) {
-        const boundaryValue = rawRange[boundary];
-        if (boundaryValue === undefined || boundaryValue === null || boundaryValue === '') {
-          continue;
-        }
-        const parsed = typeof boundaryValue === 'number' ? boundaryValue : Number(boundaryValue);
-        if (!Number.isFinite(parsed)) {
-          throw new RequestValidationError('`filters.page_number.gte/lte` must be numbers.');
-        }
-        pageRange[boundary] = parsed;
-      }
-      if (Object.keys(pageRange).length > 0) {
-        range[field] = pageRange;
-      }
-      continue;
-    }
-
-    const values = (Array.isArray(rawValue) ? rawValue : [rawValue])
-      .map(normalizePrimitiveFilterValue)
-      .filter((value): value is PrimitiveFilterValue => value !== null);
-
+  for (const [field, rawValue] of Object.entries(rawFilter)) {
+    const values = normalizeStringList(rawValue);
     if (values.length > 0) {
-      terms[field] = [
-        ...new Map(values.map((value) => [`${typeof value}:${String(value)}`, value])).values(),
-      ];
+      filter[field] = values;
     }
   }
 
-  return { terms, range };
+  return filter;
 }
 
-function buildOpenSearchFilter(filters: ReturnType<typeof normalizeFilters>) {
-  const clauses: Array<Record<string, unknown>> = [];
+function normalizeDateFilter(rawDatefilter: unknown): DateFilterType {
+  const rawFilter = normalizeObject(rawDatefilter, 'datefilter');
+  const datefilter: DateFilterType = {};
 
-  for (const [field, values] of Object.entries(filters.terms)) {
-    clauses.push({ terms: { [field]: values } });
+  for (const [field, rawValue] of Object.entries(rawFilter)) {
+    if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue)) {
+      throw new RequestValidationError('`datefilter` values must be range objects.');
+    }
+
+    const rawRange = rawValue as Record<string, unknown>;
+    const range: { gte?: number; lte?: number } = {};
+    for (const boundary of ['gte', 'lte'] as const) {
+      const boundaryValue = rawRange[boundary];
+      if (boundaryValue === undefined || boundaryValue === null || boundaryValue === '') {
+        continue;
+      }
+      const parsed = typeof boundaryValue === 'number' ? boundaryValue : Number(boundaryValue);
+      if (!Number.isFinite(parsed)) {
+        throw new RequestValidationError('`datefilter` gte/lte values must be numbers.');
+      }
+      range[boundary] = parsed;
+    }
+
+    if (Object.keys(range).length > 0) {
+      datefilter[field] = range;
+    }
   }
 
-  for (const [field, value] of Object.entries(filters.range)) {
-    clauses.push({ range: { [field]: value } });
-  }
-
-  return clauses;
+  return datefilter;
 }
 
-function buildPineconeFilter(filters: ReturnType<typeof normalizeFilters>) {
-  const clauses: Array<Record<string, unknown>> = [];
-
-  for (const [field, values] of Object.entries(filters.terms)) {
-    clauses.push({ [field]: { $in: values } });
+function buildFilters(filter?: FilterType, datefilter?: DateFilterType): FiltersType {
+  const filters: FiltersType = [];
+  if (filter && Object.keys(filter).length > 0) {
+    filters.push({ terms: filter });
   }
-
-  for (const [field, value] of Object.entries(filters.range)) {
-    clauses.push({
-      [field]: {
-        ...(value.gte !== undefined ? { $gte: value.gte } : {}),
-        ...(value.lte !== undefined ? { $lte: value.lte } : {}),
-      },
-    });
+  if (datefilter && Object.keys(datefilter).length > 0) {
+    filters.push({ range: datefilter });
   }
-
-  return clauses.length > 0 ? { $and: clauses } : undefined;
+  return filters;
 }
 
-function shouldAutoRewrite(query: string) {
-  const trimmed = query.trim();
-  if (/^(doi|isbn|issn|patent|标准号)[:：]/i.test(trimmed)) {
-    return false;
-  }
-  if (/^[a-z0-9_\-./:]+$/i.test(trimmed) && trimmed.length <= 32) {
-    return false;
-  }
-  return trimmed.length > 12 || /[?？,，。;；\s]/u.test(trimmed);
-}
+function filterToPCQuery(filters: FiltersType): PCFilter | undefined {
+  const andConditions = filters.flatMap((item) => {
+    const conditions: Array<{ [field: string]: { $in?: string[]; $gte?: number; $lte?: number } }> =
+      [];
 
-async function buildQueryPack(query: string, rewrite: RewriteMode) {
-  if (rewrite === 'off' || (rewrite === 'auto' && !shouldAutoRewrite(query))) {
-    return {
-      semanticQuery: query,
-      fullTextQueries: [query],
-      rewriteApplied: false,
-    };
-  }
+    if (item.terms) {
+      for (const field in item.terms) {
+        conditions.push({
+          [field]: {
+            $in: item.terms[field],
+          },
+        });
+      }
+    }
 
-  const rewritten = await generateQuery(query);
-  return {
-    semanticQuery: rewritten.semantic_query,
-    fullTextQueries: buildLexicalQueryCandidates(rewritten),
-    rewriteApplied: true,
-  };
+    if (item.range) {
+      for (const field in item.range) {
+        const rangeConditions: { $gte?: number; $lte?: number } = {};
+        if (item.range[field].gte !== undefined) {
+          rangeConditions.$gte = item.range[field].gte;
+        }
+        if (item.range[field].lte !== undefined) {
+          rangeConditions.$lte = item.range[field].lte;
+        }
+        conditions.push({
+          [field]: rangeConditions,
+        });
+      }
+    }
+    return conditions;
+  });
+
+  return andConditions.length > 0
+    ? {
+        $and: andConditions,
+      }
+    : undefined;
 }
 
 function loadCourseSearchTarget(): SearchTarget {
@@ -602,25 +483,24 @@ async function retrieveChunks(
   fullTextQueries: string[],
   topK: number,
   extK: number,
-  filters: ReturnType<typeof normalizeFilters>,
+  filters: FiltersType,
 ) {
   const searchVector = await generateEmbedding(semanticQuery, {
     model: openai_embedding_model,
   });
 
-  const opensearchFilters = buildOpenSearchFilter(filters);
   const opensearchBody = {
     query: {
       bool: {
         should: fullTextQueries.map((query) => ({ match: { text: query } })),
         minimum_should_match: 1,
-        ...(opensearchFilters.length > 0 ? { filter: opensearchFilters } : {}),
+        ...(filters.length > 0 ? { filter: filters } : {}),
       },
     },
     size: topK,
   };
 
-  const pineconeFilter = buildPineconeFilter(filters);
+  const pineconeFilter = filterToPCQuery(filters);
   const pineconeIndex = pc.index(target.pineconeIndexName);
 
   const [pineconeResponse, fulltextResponse] = await Promise.all([
@@ -789,150 +669,6 @@ function toCourseDocuments(chunks: ReturnType<typeof toResponseChunk>[]) {
   return documents;
 }
 
-async function synthesizeAnswer(query: string, chunks: ReturnType<typeof toResponseChunk>[]) {
-  if (chunks.length === 0) {
-    return {
-      answer: 'I do not have enough authorized course material to answer this question.',
-      citations: [],
-    };
-  }
-
-  const client = getOpenAIClient(Deno.env.get('OPENAI_BASE_URL') || undefined) as unknown as {
-    responses?: { create?: (args: unknown) => Promise<unknown> };
-    chat?: { completions?: { create?: (args: unknown) => Promise<unknown> } };
-  };
-  const model = Deno.env.get('OPENAI_CHAT_MODEL') || 'gpt-4o-mini';
-  const context = chunks
-    .slice(0, 8)
-    .map(
-      (chunk, index) =>
-        `[${index + 1}] document_id=${chunk.document_id} chunk=${chunk.chunk_index}\n${chunk.text}`,
-    )
-    .join('\n\n');
-
-  const systemPrompt =
-    'Answer using only the provided authorized course context. If the context is insufficient, say that you do not have enough evidence. Include bracketed citation numbers for factual claims.';
-  const userPrompt = `Question:\n${query}\n\nAuthorized course context:\n${context}`;
-
-  let rawResponse: unknown;
-  if (client.responses?.create) {
-    rawResponse = await client.responses.create({
-      model,
-      input: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    });
-  } else if (client.chat?.completions?.create) {
-    rawResponse = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    });
-  } else {
-    throw new Error('OpenAI SDK missing both responses.create and chat.completions.create');
-  }
-
-  const answer = extractOpenAIText(rawResponse);
-
-  return {
-    answer: answer || 'I do not have enough authorized course material to answer this question.',
-    citations: chunks.slice(0, 8).map((chunk, index) => ({
-      citation_id: index + 1,
-      record_id: chunk.record_id,
-      document_id: chunk.document_id,
-      chunk_index: chunk.chunk_index,
-    })),
-  };
-}
-
-function extractOpenAIText(response: unknown): string {
-  if (!response || typeof response !== 'object') {
-    return '';
-  }
-
-  const record = response as Record<string, unknown>;
-  if (typeof record.output_text === 'string') {
-    return record.output_text.trim();
-  }
-
-  const output = record.output;
-  if (Array.isArray(output)) {
-    for (const item of output) {
-      const content =
-        item && typeof item === 'object' ? (item as Record<string, unknown>).content : null;
-      if (!Array.isArray(content)) {
-        continue;
-      }
-      for (const part of content) {
-        if (
-          part &&
-          typeof part === 'object' &&
-          typeof (part as Record<string, unknown>).text === 'string'
-        ) {
-          return String((part as Record<string, unknown>).text).trim();
-        }
-      }
-    }
-  }
-
-  const choices = record.choices;
-  if (Array.isArray(choices)) {
-    for (const choice of choices) {
-      const message =
-        choice && typeof choice === 'object' ? (choice as Record<string, unknown>).message : null;
-      if (message && typeof message === 'object') {
-        const content = (message as Record<string, unknown>).content;
-        if (typeof content === 'string') {
-          return content.trim();
-        }
-      }
-    }
-  }
-
-  return '';
-}
-
-async function insertQueryLog(input: {
-  actorId: string;
-  scope: Record<string, unknown>;
-  mode: QueryMode;
-  rewrite: RewriteMode;
-  rewriteApplied: boolean;
-  originalQuery: string;
-  semanticQuery: string;
-  fullTextQueries: string[];
-  filters: Record<string, unknown>;
-  topK: number;
-  extK: number;
-  resultCount: number;
-  latencyMs: number;
-}) {
-  const { error } = await getServiceSupabase()
-    .from('kb_query_logs')
-    .insert({
-      actor_id: input.actorId,
-      scope_json: input.scope,
-      mode: input.mode,
-      rewrite_mode: input.rewrite,
-      rewrite_applied: input.rewriteApplied,
-      original_query: input.originalQuery,
-      semantic_query: input.semanticQuery,
-      full_text_query: input.fullTextQueries.join('\n'),
-      filters_json: input.filters,
-      top_k: input.topK,
-      ext_k: input.extK > 0 ? input.extK : null,
-      result_count: input.resultCount,
-      latency_ms: input.latencyMs,
-    });
-
-  if (error) {
-    console.error('Failed to insert kb_query_logs row:', error.message);
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -959,8 +695,6 @@ Deno.serve(async (req) => {
       return auth;
     }
 
-    const startedAt = Date.now();
-    const documentScopeIds = normalizeUuidList(body.scope.document_ids, 'scope.document_ids');
     const target = loadCourseSearchTarget();
 
     if (!target.opensearchIndexName || !target.pineconeIndexName || !target.pineconeNamespace) {
@@ -973,64 +707,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const filters = normalizeFilters(
-      mergeScopeIntoFilters(body.filters, body.scope, auth.collectionScope),
-    );
-    const queryPack = await buildQueryPack(body.query, body.rewrite);
+    const filter = { ...body.filter };
+    const scopeTags = auth.collectionScope.map(collectionPathToTag).filter(Boolean);
+    if (scopeTags.length > 0) {
+      filter.tags = [...normalizeStringList(filter.tags), ...scopeTags];
+    }
+    const filters = buildFilters(filter, body.datefilter);
+    const rewritten = await generateQuery(body.query);
     const retrievedChunks = await retrieveChunks(
       target,
-      queryPack.semanticQuery,
-      queryPack.fullTextQueries,
+      rewritten.semantic_query,
+      buildLexicalQueryCandidates(rewritten),
       body.topK,
       body.extK,
       filters,
     );
 
-    const scopedDocumentIds = new Set(documentScopeIds);
-    const chunks = retrievedChunks
-      .filter((chunk) => scopedDocumentIds.size === 0 || scopedDocumentIds.has(chunk.document_id))
-      .map(toResponseChunk);
-
+    const chunks = retrievedChunks.map(toResponseChunk);
     const courseDocuments = toCourseDocuments(chunks);
-    const answerResult =
-      body.mode === 'answer'
-        ? await synthesizeAnswer(body.query, chunks)
-        : { answer: null, citations: [] };
-    const latencyMs = Date.now() - startedAt;
 
-    await insertQueryLog({
-      actorId: auth.actorId,
-      scope: body.scope,
-      mode: body.mode,
-      rewrite: body.rewrite,
-      rewriteApplied: queryPack.rewriteApplied,
-      originalQuery: body.query,
-      semanticQuery: queryPack.semanticQuery,
-      fullTextQueries: queryPack.fullTextQueries,
-      filters: body.filters,
-      topK: body.topK,
-      extK: body.extK,
-      resultCount: courseDocuments.length,
-      latencyMs,
-    });
     logInsert(auth.subject, Date.now(), 'course_search', body.topK, body.extK);
 
-    if (body.mode === 'retrieve') {
-      return jsonResponse(courseDocuments);
-    }
-
-    const queryId = crypto.randomUUID();
-    return jsonResponse({
-      query_id: queryId,
-      mode: body.mode,
-      rewrite: body.rewrite,
-      rewrite_applied: queryPack.rewriteApplied,
-      answer: answerResult.answer,
-      citations: answerResult.citations,
-      chunks,
-      result_count: chunks.length,
-      latency_ms: latencyMs,
-    });
+    return jsonResponse(courseDocuments);
   } catch (error) {
     if (error instanceof RequestValidationError) {
       return jsonResponse({ error: error.message }, { status: 400 });

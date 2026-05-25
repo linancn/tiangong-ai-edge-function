@@ -5,10 +5,12 @@ export interface OpenAIStructuredTaskRequest {
   schema: Record<string, unknown>;
   systemPrompt: string;
   userPrompt: string;
+  model?: string;
   modelEnvName?: string;
   fallbackModel?: string;
   temperature?: number;
   baseUrl?: string;
+  reasoningEffort?: string;
 }
 
 export function resolveOpenAIChatModel(
@@ -20,7 +22,8 @@ export function resolveOpenAIChatModel(
 }
 
 export async function runStructuredOpenAITask<T>(request: OpenAIStructuredTaskRequest): Promise<T> {
-  const model = resolveOpenAIChatModel(request.modelEnvName, request.fallbackModel);
+  const model =
+    request.model ?? resolveOpenAIChatModel(request.modelEnvName, request.fallbackModel);
 
   return await openaiStructuredOutput<T>({
     schemaName: request.schemaName,
@@ -31,6 +34,7 @@ export async function runStructuredOpenAITask<T>(request: OpenAIStructuredTaskRe
       model,
       temperature: request.temperature ?? 0,
       baseUrl: request.baseUrl,
+      reasoningEffort: request.reasoningEffort,
     },
   });
 }
