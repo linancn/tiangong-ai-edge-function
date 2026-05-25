@@ -53,6 +53,8 @@ deno info
 
 Copy `.env.example` to `.env.local` for root-level tooling, and copy `supabase/.env.example` to `supabase/.env.local` before running `npm start`.
 
+Most remote API examples use `x-api-key` for authentication. `course_search` remote examples use scoped bearer tokens so the function can verify `kb:read` and apply collection-scope restrictions through `verify_kb_api_key`.
+
 ## Local Development
 
 ````bash
