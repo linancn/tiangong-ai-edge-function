@@ -130,19 +130,21 @@ npx supabase login
 
 # npx supabase secrets set --env-file ./supabase/.env.production --project-ref qyyqlnwqwgvzxnccnbgm
 
-npx supabase functions deploy edu_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy esg_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy internal_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy sci_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy course_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy patent_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy report_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy standard_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy textbook_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy green_deal_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy bigquery_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy info_extract --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
+IMPORT_MAP="--import-map supabase/functions/deno.json"
 
-npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
-npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt
+npx supabase functions deploy edu_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy esg_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy internal_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy sci_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy course_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy patent_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy report_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy standard_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy textbook_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy green_deal_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy bigquery_search --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy info_extract --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+
+npx supabase functions deploy question_generation --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
+npx supabase functions deploy kg_generate --project-ref qyyqlnwqwgvzxnccnbgm --no-verify-jwt $IMPORT_MAP
 ```
