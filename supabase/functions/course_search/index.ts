@@ -6,6 +6,7 @@ import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient } from '@supabase/supabase-js@2';
+import { Redis } from '@upstash/redis';
 import { corsHeaders } from '../_shared/cors.ts';
 import decodeApiKey from '../_shared/decode_api_key.ts';
 import generateQuery from '../_shared/generate_query.ts';
@@ -27,6 +28,13 @@ const supabase_url = Deno.env.get('REMOTE_SUPABASE_URL') ?? Deno.env.get('SUPABA
 const supabase_publishable_key =
   Deno.env.get('REMOTE_SUPABASE_PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
 const supabase_service_role_key = getSupabaseAdminKey();
+
+const redis_url = Deno.env.get('UPSTASH_REDIS_URL') ?? '';
+const redis_token = Deno.env.get('UPSTASH_REDIS_TOKEN') ?? '';
+
+const auth_cache_ttl_seconds = 15 * 60;
+const auth_cache_version = 'v1';
+const course_search_required_scopes = ['kb:read'];
 
 const pc = new Pinecone({ apiKey: pinecone_api_key });
 
@@ -73,6 +81,7 @@ function createServiceClient() {
 
 const authSupabase = createPublishableClient();
 let serviceSupabase: ReturnType<typeof createServiceClient> | null = null;
+const redis = redis_url && redis_token ? new Redis({ url: redis_url, token: redis_token }) : null;
 
 function getServiceSupabase() {
   requireServiceRoleKey();
@@ -100,6 +109,10 @@ interface SearchTarget {
 interface AuthContext {
   subject: string;
   collectionScope: string[];
+}
+
+interface CachedAuthContext extends AuthContext {
+  expiresAt: string | null;
 }
 
 interface CourseChunk {
@@ -273,16 +286,123 @@ async function sha256Hex(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+async function buildAuthCacheKey(tokenHash: string) {
+  const scopedHash = await sha256Hex(
+    `course_search|${course_search_required_scopes.join(',')}|${tokenHash}`,
+  );
+  return `course_search:auth:${auth_cache_version}:${scopedHash}`;
+}
+
+function normalizeCollectionScope(rawScope: unknown): string[] {
+  return Array.isArray(rawScope)
+    ? rawScope.map((path: unknown) => normalizeCollectionPath(String(path)))
+    : [];
+}
+
+function parseCachedAuthContext(rawValue: unknown): CachedAuthContext | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const value = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    const entry = value as Record<string, unknown>;
+    if (typeof entry.subject !== 'string' || !entry.subject) {
+      return null;
+    }
+
+    const expiresAt =
+      typeof entry.expiresAt === 'string' && entry.expiresAt ? entry.expiresAt : null;
+    if (expiresAt) {
+      const expiresAtMs = Date.parse(expiresAt);
+      if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+        return null;
+      }
+    }
+
+    return {
+      subject: entry.subject,
+      collectionScope: normalizeCollectionScope(entry.collectionScope),
+      expiresAt,
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function readCachedAuthContext(cacheKey: string): Promise<AuthContext | null> {
+  if (!redis) {
+    return null;
+  }
+
+  try {
+    const cached = await redis.get(cacheKey);
+    const parsed = parseCachedAuthContext(cached);
+    return parsed
+      ? {
+          subject: parsed.subject,
+          collectionScope: parsed.collectionScope,
+        }
+      : null;
+  } catch (error) {
+    console.error('course_search auth cache read failed', error);
+    return null;
+  }
+}
+
+function getAuthCacheTtlSeconds(expiresAt: unknown) {
+  if (typeof expiresAt !== 'string' || !expiresAt) {
+    return auth_cache_ttl_seconds;
+  }
+
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs)) {
+    return auth_cache_ttl_seconds;
+  }
+
+  return Math.max(
+    0,
+    Math.min(auth_cache_ttl_seconds, Math.floor((expiresAtMs - Date.now()) / 1000)),
+  );
+}
+
+async function writeCachedAuthContext(cacheKey: string, context: CachedAuthContext) {
+  if (!redis) {
+    return;
+  }
+
+  const ttlSeconds = getAuthCacheTtlSeconds(context.expiresAt);
+  if (ttlSeconds <= 0) {
+    return;
+  }
+
+  try {
+    await redis.setex(cacheKey, ttlSeconds, JSON.stringify(context));
+  } catch (error) {
+    console.error('course_search auth cache write failed', error);
+  }
+}
+
 async function authenticateRequest(req: Request): Promise<AuthContext | Response> {
   const bearerToken = extractBearerToken(req.headers.get('authorization'));
 
   if (bearerToken) {
     requireServiceRoleKey();
+    const tokenHash = await sha256Hex(bearerToken);
+    const authCacheKey = await buildAuthCacheKey(tokenHash);
+    const cachedAuth = await readCachedAuthContext(authCacheKey);
+    if (cachedAuth) {
+      return cachedAuth;
+    }
 
     const { data, error } = await getServiceSupabase().rpc('verify_kb_api_key', {
       p_token_prefix: bearerToken.slice(0, 18),
-      p_token_hash: await sha256Hex(bearerToken),
-      p_required_scopes: ['kb:read'],
+      p_token_hash: tokenHash,
+      p_required_scopes: course_search_required_scopes,
       p_request_context: { endpoint: 'course_search' },
     });
 
@@ -302,11 +422,19 @@ async function authenticateRequest(req: Request): Promise<AuthContext | Response
       return jsonResponse({ error: 'Bearer token is not mapped to an actor.' }, { status: 403 });
     }
 
-    return {
+    const authContext = {
       subject: String(row.client_id ?? row.actor_user_id),
-      collectionScope: Array.isArray(row.collection_scope)
-        ? row.collection_scope.map((path: unknown) => normalizeCollectionPath(String(path)))
-        : [],
+      collectionScope: normalizeCollectionScope(row.collection_scope),
+    };
+
+    await writeCachedAuthContext(authCacheKey, {
+      ...authContext,
+      expiresAt: typeof row.expires_at === 'string' && row.expires_at ? row.expires_at : null,
+    });
+
+    return {
+      subject: authContext.subject,
+      collectionScope: authContext.collectionScope,
     };
   }
 
@@ -564,7 +692,7 @@ async function retrieveChunks(
     candidateIds.add(chunk.record_id);
   }
 
-  const hits = (fulltextResponse.body?.hits?.hits ?? []) as Array<{
+  const hits = (fulltextResponse.body?.hits?.hits ?? []) as unknown as Array<{
     _id: string;
     _score?: number;
     _source?: Record<string, unknown>;

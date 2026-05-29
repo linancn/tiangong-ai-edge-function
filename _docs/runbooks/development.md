@@ -14,7 +14,7 @@ checkPaths:
   - Dockerfile
   - supabase/**
 lastReviewedAt: 2026-05-29
-lastReviewedCommit: 08395648bba6ef8ee00e4d0dc075e8850daecd28
+lastReviewedCommit: 5659945e2faa17317ed71f96b69dbf2b37e25839
 ---
 
 # Edge Function Development Runbook
@@ -26,6 +26,7 @@ lastReviewedCommit: 08395648bba6ef8ee00e4d0dc075e8850daecd28
 3. Run `npm install`.
 4. Copy `.env.example` to `.env.local` for root-level tooling.
 5. Copy `supabase/.env.example` to `supabase/.env.local` before running `npm start`.
+6. Configure `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` when validating `course_search` Bearer authorization caching; leave them unset to force live RPC verification.
 
 ## Local Serve
 
@@ -67,4 +68,4 @@ Use `--include-optional` for optional GPT-5 nano-family candidates and `--models
 
 ## Deployment
 
-Use the Supabase deployment commands in `README.md` for individual functions. Docker packaging is not currently a validated path: `Dockerfile` references `supabase/functions/main` and `supabase/functions/import_map.json`, which are not present. Fix and validate the Dockerfile before using Docker deployment commands.
+Use the Supabase deployment commands in `README.md` for individual functions. Pass `--import-map supabase/functions/deno.json` so the remote bundler resolves shared Deno and npm import aliases. Docker packaging is not currently a validated path: `Dockerfile` references `supabase/functions/main` and `supabase/functions/import_map.json`, which are not present. Fix and validate the Dockerfile before using Docker deployment commands.
