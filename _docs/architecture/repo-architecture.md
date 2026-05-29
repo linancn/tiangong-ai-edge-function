@@ -12,8 +12,8 @@ checkPaths:
   - supabase/config.toml
   - Dockerfile
   - package.json
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: 6c691ef6a73e918fd65a72a4755233665eacfd4b
+lastReviewedAt: 2026-05-29
+lastReviewedCommit: 5659945e2faa17317ed71f96b69dbf2b37e25839
 ---
 
 # Edge Function Architecture

@@ -794,10 +794,12 @@ function toCourseDocuments(chunks: ReturnType<typeof toResponseChunk>[]) {
     return a.chunk_index - b.chunk_index;
   });
 
-  const documents: Array<{ content: string; source: string }> = [];
+  const documents: Array<{ content: string; source: string; document_id: string; tags: string }> =
+    [];
   let currentDocumentId = '';
   let currentTexts: string[] = [];
   let currentSource = '';
+  let currentTags = '';
 
   for (const chunk of sorted) {
     if (chunk.document_id !== currentDocumentId) {
@@ -805,11 +807,17 @@ function toCourseDocuments(chunks: ReturnType<typeof toResponseChunk>[]) {
         documents.push({
           content: currentTexts.join('\n'),
           source: currentSource,
+          document_id: currentDocumentId,
+          tags: currentTags,
         });
       }
       currentDocumentId = chunk.document_id;
       currentTexts = [chunk.text];
       currentSource = toSourceEntry(chunk);
+      currentTags =
+        typeof chunk.metadata.tags === 'string'
+          ? chunk.metadata.tags
+          : String(chunk.metadata.tags ?? '');
     } else {
       currentTexts.push(chunk.text);
     }
@@ -819,6 +827,8 @@ function toCourseDocuments(chunks: ReturnType<typeof toResponseChunk>[]) {
     documents.push({
       content: currentTexts.join('\n'),
       source: currentSource,
+      document_id: currentDocumentId,
+      tags: currentTags,
     });
   }
 
