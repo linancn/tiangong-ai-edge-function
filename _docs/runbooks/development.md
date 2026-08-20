@@ -13,8 +13,8 @@ checkPaths:
   - deno.json
   - Dockerfile
   - supabase/**
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: 6c691ef6a73e918fd65a72a4755233665eacfd4b
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: 921b212c22532d69d756b18099fb23bf9ee16784
 ---
 
 # Edge Function Development Runbook

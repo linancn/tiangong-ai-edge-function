@@ -16,8 +16,8 @@ checkPaths:
   - .env.example
   - supabase/**
   - test.example.http
-lastReviewedAt: 2026-04-29
-lastReviewedCommit: 6769a7b7210a6386d6dae6695bdd9010a1185614
+lastReviewedAt: 2026-08-20
+lastReviewedCommit: 921b212c22532d69d756b18099fb23bf9ee16784
 ---
 
 # TianGong-AI-Edge-Functions
