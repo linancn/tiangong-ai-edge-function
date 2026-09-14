@@ -22,6 +22,16 @@ lastReviewedCommit: 921b212c22532d69d756b18099fb23bf9ee16784
 
 # TianGong-AI-Edge-Functions
 
+<!-- tiangong-ai-migration-20260914:start -->
+
+## GitHub organization migration / GitHub 组织迁移
+
+This original repository now belongs to the [tiangong-ai organization](https://github.com/tiangong-ai), with its repository identity and history retained. The CLI package `@tiangong-ai/cli` and command `tiangong-ai` are unchanged. Wiki is now published as `@tiangong-ai/wiki`; its commands remain unchanged. See the [migration and upgrade notes](https://github.com/tiangong-ai/cli-toolkit/releases/tag/v0.0.63).
+
+该仓库已迁入 [tiangong-ai 组织](https://github.com/tiangong-ai)，仓库身份与历史保留。CLI 包名 `@tiangong-ai/cli` 和命令 `tiangong-ai` 不变；Wiki 新包名为 `@tiangong-ai/wiki`，命令不变。升级方式见[迁移说明](https://github.com/tiangong-ai/cli-toolkit/releases/tag/v0.0.63)。原个人账号 `tiangong-ai-legacy` 保留历史；请自行 Follow 新组织。
+
+<!-- tiangong-ai-migration-20260914:end -->
+
 ## Env Preparing
 
 ```bash
