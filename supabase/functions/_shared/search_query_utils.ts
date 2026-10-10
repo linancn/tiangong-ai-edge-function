@@ -130,7 +130,7 @@ Rewrite rules:
 2) Do NOT generate synonym lists, answers, explanations, or subqueries.
 3) Return retrieval-ready noun phrases only. Do NOT return questions or long explanatory sentences.
 4) For lexical queries, keep important entities, modifiers, and constraints in natural order. Do NOT create awkward reordered keyword strings.
-5) Keep standard numbers, abbreviations, identifiers, chemical formulas, and official names in the form most likely to appear in the target corpus.
+5) Preserve every supplied standard number, edition/year, identifier (including CAS numbers), chemical formula, and official name in BOTH semantic and lexical queries. Do not omit, change, infer, or invent identifiers. Keep unknown abbreviations unchanged; never guess their expansion.
 6) Keep semantic queries close to the original wording whenever the original query is already retrieval-ready, but remove question framing and filler words.
 7) For paragraph input, compress conservatively into one short retrieval-ready phrase that preserves the target, object, and constraints. Do NOT decompose into subqueries.
 8) Return short plain strings only.

@@ -12,8 +12,8 @@ checkPaths:
   - .docpact/config.yaml
   - .github/workflows/docpact.yml
   - _docs/**
-lastReviewedAt: 2026-09-14
-lastReviewedCommit: a9424f22e1288cbbcd3c4ceb9226d5d1725e3ab2
+lastReviewedAt: 2026-10-10
+lastReviewedCommit: 8de58fbcb4dc10abece3131a5ea3ed4b63970056
 ---
 
 # Edge Function Documentation Standards
