@@ -17,7 +17,7 @@ checkPaths:
   - supabase/**
   - test.example.http
 lastReviewedAt: 2026-10-10
-lastReviewedCommit: a8678bcbc48ee779494565eca08583a0a92c42a7
+lastReviewedCommit: 5f43228ef53037065516557b5400b85e2caf423b
 ---
 
 # TianGong-AI-Edge-Functions
@@ -100,7 +100,7 @@ Edit .env file refer to .env.example then use REST Client extension of VSCode to
 
 Set `OPENAI_CHAT_MODEL=gpt-6-luna` to select Luna for query rewriting and all text-generation functions. Both the multilingual and English rewrite helpers use this shared setting with `reasoning.effort=none`, `text.verbosity=low`, and `temperature=0`, keeping their existing schema/profile selection. The Chat compatibility branch sends the equivalent `reasoning_effort` and `verbosity` fields. General generation leaves reasoning and sampling parameters to the model defaults; embeddings use `OPENAI_EMBEDDING_MODEL`.
 
-`OPENAI_CHAT_MODEL` is the single text-model setting. Keep it explicitly configured: an unset or blank value retains the existing shared default, `gpt-4o-mini`. A failed model request follows the existing error path without automatically switching models. Before configuring another model, validate all text-generation callers and the rewrite helpers' fixed none/low settings. No query rewrite cache or vector reindex is involved.
+`OPENAI_CHAT_MODEL` is the single text-model setting. An unset, empty, or whitespace-only value selects the shared default, `gpt-6-luna`, which accepts the rewrite helpers' fixed settings. A failed model request follows the existing error path without automatically switching models. Before configuring another model, validate all text-generation callers and the rewrite helpers' fixed none/low settings. No query rewrite cache or vector reindex is involved.
 
 The shared request layer sends `temperature` only when explicitly supplied. Luna rejects this parameter when reasoning is not `none`, so general generation must not receive an implicit `temperature=0` ([OpenAI compatibility guidance](https://developers.openai.com/api/docs/guides/deployment-checklist)).
 

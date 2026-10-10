@@ -7,6 +7,7 @@ import {
   generateOntologyTuples,
   generatePerspectiveQuestions,
 } from '../supabase/functions/_shared/openai_generation.ts';
+import { openaiStructuredOutput } from '../supabase/functions/_shared/openai_structured.ts';
 import { runStructuredOpenAITask } from '../supabase/functions/_shared/openai_structured_task.ts';
 
 function assert(value: unknown, message: string): asserts value {
@@ -108,14 +109,25 @@ Deno.test(
           () => generateKnowledgeGraph('wastewater treatment', 'nitrogen removal'),
           () => generatePerspectiveQuestions('wastewater treatment'),
         ];
-        for (const setting of ['gpt-6-luna', ' offline-shared-model ', '', undefined]) {
+        for (const setting of ['gpt-6-luna', undefined, '', '   ', ' offline-shared-model ']) {
           if (setting === undefined) Deno.env.delete('OPENAI_CHAT_MODEL');
           else Deno.env.set('OPENAI_CHAT_MODEL', setting);
-          const expected = setting?.trim() || 'gpt-4o-mini';
+          const expected = setting?.trim() || 'gpt-6-luna';
           for (const profile of profiles) {
             await profile.run();
             assert(body.model === expected, `${api}: ${profile.name} ignored shared selection`);
           }
+          await openaiStructuredOutput({
+            schemaName: 'direct_shared_model',
+            schema: { type: 'object', properties: { answer: { type: 'string' } } },
+            systemPrompt: 'Offline test',
+            userPrompt: 'Offline test',
+            options: { reasoningEffort: 'none', verbosity: 'low', temperature: 0 },
+          });
+          assert(
+            body.model === expected,
+            `${api}: direct structured helper ignored shared selection`,
+          );
           for (const generate of generators) {
             await generate();
             assert(body.model === expected, `${api}: generation ignored shared selection`);

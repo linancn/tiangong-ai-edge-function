@@ -14,7 +14,7 @@ checkPaths:
   - Dockerfile
   - supabase/**
 lastReviewedAt: 2026-10-10
-lastReviewedCommit: a8678bcbc48ee779494565eca08583a0a92c42a7
+lastReviewedCommit: 5f43228ef53037065516557b5400b85e2caf423b
 ---
 
 # Edge Function Development Runbook
@@ -55,7 +55,7 @@ Use `test.example.http` or a REST client for endpoint checks when function behav
 
 ## Query Rewrite Model Evaluation
 
-Set `OPENAI_CHAT_MODEL=gpt-6-luna` for both query rewriting and general text generation. There is no separate rewrite-model setting. Rewriting retains fixed `none` reasoning, `low` verbosity and `temperature=0`; general generation leaves reasoning and sampling to model defaults. The shared layer must not inject a temperature when none was supplied, because Luna rejects it with default reasoning. `OPENAI_EMBEDDING_MODEL` remains independent. An unset or blank chat-model value retains the existing shared default, `gpt-4o-mini`; a failed request does not automatically switch models. Validate all text-generation callers and the rewrite helpers' none/low compatibility before choosing another model. This code change does not itself deploy functions or update remote secrets.
+Set `OPENAI_CHAT_MODEL=gpt-6-luna` for both query rewriting and general text generation. There is no separate rewrite-model setting. Rewriting retains fixed `none` reasoning, `low` verbosity and `temperature=0`; general generation leaves reasoning and sampling to model defaults. The shared layer must not inject a temperature when none was supplied, because Luna rejects it with default reasoning. `OPENAI_EMBEDDING_MODEL` remains independent. An unset, empty, or whitespace-only chat-model value selects the shared Luna default in both structured entrypoints; a failed request does not automatically switch models. Validate all text-generation callers and the rewrite helpers' none/low compatibility before choosing another model. This code change does not itself deploy functions or update remote secrets.
 
 Run the offline request contracts and the six-fixture live opt-in smoke using the commands in README. The smoke checks raw schema fields before sanitization, supplied identifiers and exclusions in both query fields, alias bounds, and the provider's actual model/configuration receipt. It makes at most six requests without retries; inspect the default dry output before spending on live calls. Raw reports belong outside Git. Use a valid existing credential with a local function server and small `topK`/`extK` values for real retrieval checks; do not bypass authorization or replace retrieval backends with mocks when claiming retrieval qualification.
 
