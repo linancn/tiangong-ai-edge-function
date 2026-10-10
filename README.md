@@ -17,7 +17,7 @@ checkPaths:
   - supabase/**
   - test.example.http
 lastReviewedAt: 2026-10-10
-lastReviewedCommit: 8de58fbcb4dc10abece3131a5ea3ed4b63970056
+lastReviewedCommit: 5f43228ef53037065516557b5400b85e2caf423b
 ---
 
 # TianGong-AI-Edge-Functions
@@ -98,14 +98,16 @@ Edit .env file refer to .env.example then use REST Client extension of VSCode to
 
 ## Query Rewrite Model Evaluation
 
-Production query rewriting uses `OPENAI_QUERY_REWRITE_MODEL` (default `gpt-6-luna`) with `reasoning.effort=none` and `text.verbosity=low`. Both the multilingual and English helpers keep their existing schema/profile selection. The Chat compatibility branch sends the equivalent `reasoning_effort` and `verbosity` fields. General generation still uses `OPENAI_CHAT_MODEL`; embeddings still use `OPENAI_EMBEDDING_MODEL`.
+Set `OPENAI_CHAT_MODEL=gpt-6-luna` to select Luna for query rewriting and all text-generation functions. Both the multilingual and English rewrite helpers use this shared setting with `reasoning.effort=none`, `text.verbosity=low`, and `temperature=0`, keeping their existing schema/profile selection. The Chat compatibility branch sends the equivalent `reasoning_effort` and `verbosity` fields. General generation leaves reasoning and sampling parameters to the model defaults; embeddings use `OPENAI_EMBEDDING_MODEL`.
 
-`OPENAI_QUERY_REWRITE_MODEL` is an explicit model selection override. Removing it or leaving it blank selects Luna. If Luna is unavailable, the rewrite request follows the existing error path without automatically switching to another model. Before explicitly configuring an alternative, validate that it is supported and accepts the fixed none/low settings, then restart/redeploy the affected runtime. No query rewrite cache or vector reindex is involved.
+`OPENAI_CHAT_MODEL` is the single text-model setting. An unset, empty, or whitespace-only value selects the shared default, `gpt-6-luna`, which accepts the rewrite helpers' fixed settings. A failed model request follows the existing error path without automatically switching models. Before configuring another model, validate all text-generation callers and the rewrite helpers' fixed none/low settings. No query rewrite cache or vector reindex is involved.
+
+The shared request layer sends `temperature` only when explicitly supplied. Luna rejects this parameter when reasoning is not `none`, so general generation must not receive an implicit `temperature=0` ([OpenAI compatibility guidance](https://developers.openai.com/api/docs/guides/deployment-checklist)).
 
 The Luna migration reuses the model-selection evidence from [LCA PR #465](https://github.com/tiangong-lca/edge-functions/pull/465). Local qualification is a bounded integration smoke, not another comparative benchmark:
 
 ```bash
-# Offline request contracts: four profiles, both SDK paths, generation/embedding isolation.
+# Offline request contracts: shared model selection, four profiles, both SDK paths, embedding isolation.
 deno test --allow-env --config supabase/functions/deno.json scripts/query_rewrite_test.ts
 
 # Inspect six fixed fixtures without provider calls.

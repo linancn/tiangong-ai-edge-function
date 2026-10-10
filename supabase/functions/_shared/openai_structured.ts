@@ -1,5 +1,7 @@
 import { getOpenAIClient } from './openai_client.ts';
 
+export const DEFAULT_OPENAI_CHAT_MODEL = 'gpt-6-luna';
+
 function extractOutputText(response: unknown): string {
   if (!response || typeof response !== 'object') {
     return '';
@@ -117,8 +119,12 @@ export interface OpenAIStructuredRequest {
 
 export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest): Promise<T> {
   const baseUrl = request.options?.baseUrl || Deno.env.get('OPENAI_BASE_URL') || undefined;
-  const model = request.options?.model || Deno.env.get('OPENAI_CHAT_MODEL') || 'gpt-4o-mini';
-  const temperature = request.options?.temperature ?? 0;
+  const model =
+    request.options?.model?.trim() ||
+    Deno.env.get('OPENAI_CHAT_MODEL')?.trim() ||
+    DEFAULT_OPENAI_CHAT_MODEL;
+  // Sampling parameters are opt-in; some reasoning modes reject them.
+  const temperature = request.options?.temperature;
 
   const client = getOpenAIClient(baseUrl);
   const clientAny = client as unknown as {
@@ -131,7 +137,7 @@ export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest
   if (clientAny.responses?.create) {
     response = await clientAny.responses.create({
       model,
-      temperature,
+      ...(temperature !== undefined ? { temperature } : {}),
       input: [
         { role: 'system', content: request.systemPrompt },
         { role: 'user', content: request.userPrompt },
@@ -152,7 +158,7 @@ export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest
   } else if (clientAny.chat?.completions?.create) {
     response = await clientAny.chat.completions.create({
       model,
-      temperature,
+      ...(temperature !== undefined ? { temperature } : {}),
       messages: [
         { role: 'system', content: request.systemPrompt },
         { role: 'user', content: request.userPrompt },

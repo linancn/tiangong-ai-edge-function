@@ -26,8 +26,7 @@ async function generateQuery(query: string, options?: GenerateEnglishQueryOption
     schema: useAliasSchema ? englishQueryWithAliasesSchema : englishQuerySchema,
     systemPrompt: buildEnglishQuerySystemPrompt({ profile }),
     userPrompt: `Original query: ${queryText}`,
-    modelEnvName: 'OPENAI_QUERY_REWRITE_MODEL',
-    fallbackModel: 'gpt-6-luna',
+    temperature: 0,
     reasoningEffort: 'none',
     verbosity: 'low',
   });

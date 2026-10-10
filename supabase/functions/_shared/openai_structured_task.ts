@@ -1,4 +1,4 @@
-import { openaiStructuredOutput } from './openai_structured.ts';
+import { DEFAULT_OPENAI_CHAT_MODEL, openaiStructuredOutput } from './openai_structured.ts';
 
 export interface OpenAIStructuredTaskRequest {
   schemaName: string;
@@ -16,7 +16,7 @@ export interface OpenAIStructuredTaskRequest {
 
 export function resolveOpenAIChatModel(
   modelEnvName = 'OPENAI_CHAT_MODEL',
-  fallbackModel = 'gpt-4o-mini',
+  fallbackModel = DEFAULT_OPENAI_CHAT_MODEL,
 ): string {
   const model = Deno.env.get(modelEnvName)?.trim();
   return model || fallbackModel;
@@ -33,7 +33,7 @@ export async function runStructuredOpenAITask<T>(request: OpenAIStructuredTaskRe
     userPrompt: request.userPrompt,
     options: {
       model,
-      temperature: request.temperature ?? 0,
+      temperature: request.temperature,
       baseUrl: request.baseUrl,
       reasoningEffort: request.reasoningEffort,
       verbosity: request.verbosity,
