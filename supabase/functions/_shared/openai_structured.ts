@@ -104,6 +104,7 @@ export interface OpenAIStructuredOptions {
   temperature?: number;
   baseUrl?: string;
   reasoningEffort?: string;
+  verbosity?: 'low' | 'medium' | 'high';
 }
 
 export interface OpenAIStructuredRequest {
@@ -139,6 +140,7 @@ export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest
         ? { reasoning: { effort: request.options.reasoningEffort } }
         : {}),
       text: {
+        ...(request.options?.verbosity ? { verbosity: request.options.verbosity } : {}),
         format: {
           type: 'json_schema',
           name: request.schemaName,
@@ -155,6 +157,10 @@ export async function openaiStructuredOutput<T>(request: OpenAIStructuredRequest
         { role: 'system', content: request.systemPrompt },
         { role: 'user', content: request.userPrompt },
       ],
+      ...(request.options?.reasoningEffort
+        ? { reasoning_effort: request.options.reasoningEffort }
+        : {}),
+      ...(request.options?.verbosity ? { verbosity: request.options.verbosity } : {}),
       response_format: {
         type: 'json_schema',
         json_schema: {

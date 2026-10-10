@@ -16,8 +16,8 @@ checkPaths:
   - .env.example
   - supabase/**
   - test.example.http
-lastReviewedAt: 2026-08-20
-lastReviewedCommit: 921b212c22532d69d756b18099fb23bf9ee16784
+lastReviewedAt: 2026-10-10
+lastReviewedCommit: 8de58fbcb4dc10abece3131a5ea3ed4b63970056
 ---
 
 # TianGong-AI-Edge-Functions
@@ -98,6 +98,28 @@ Edit .env file refer to .env.example then use REST Client extension of VSCode to
 
 ## Query Rewrite Model Evaluation
 
+Production query rewriting uses `OPENAI_QUERY_REWRITE_MODEL` (default `gpt-6-luna`) with `reasoning.effort=none` and `text.verbosity=low`. Both the multilingual and English helpers keep their existing schema/profile selection. The Chat compatibility branch sends the equivalent `reasoning_effort` and `verbosity` fields. General generation still uses `OPENAI_CHAT_MODEL`; embeddings still use `OPENAI_EMBEDDING_MODEL`.
+
+`OPENAI_QUERY_REWRITE_MODEL` is an explicit model selection override. Removing it or leaving it blank selects Luna. If Luna is unavailable, the rewrite request follows the existing error path without automatically switching to another model. Before explicitly configuring an alternative, validate that it is supported and accepts the fixed none/low settings, then restart/redeploy the affected runtime. No query rewrite cache or vector reindex is involved.
+
+The Luna migration reuses the model-selection evidence from [LCA PR #465](https://github.com/tiangong-lca/edge-functions/pull/465). Local qualification is a bounded integration smoke, not another comparative benchmark:
+
+```bash
+# Offline request contracts: four profiles, both SDK paths, generation/embedding isolation.
+deno test --allow-env --config supabase/functions/deno.json scripts/query_rewrite_test.ts
+
+# Inspect six fixed fixtures without provider calls.
+deno run --config supabase/functions/deno.json scripts/query_rewrite_smoke.ts
+
+# Explicit live smoke using your existing configured credentials: six calls, no retries/judge.
+set -a; . ./supabase/.env.local; set +a
+deno run --allow-env --allow-net --allow-read --allow-write=/tmp \
+  --config supabase/functions/deno.json scripts/query_rewrite_smoke.ts \
+  --live --output=/tmp/query-rewrite-smoke.json
+```
+
+Keep provider receipts and backend responses outside Git. See the development runbook for observed qualification and its limits.
+
 `scripts/eval_query_rewrite_models.ts` compares `OPENAI_CHAT_MODEL` candidates for query rewrite only. It reuses the production rewrite prompts and schemas, keeps `gpt-4.1-mini` as the baseline, and writes JSON plus Markdown reports under `/tmp/tiangong-eval` by default.
 
 ```bash
@@ -110,7 +132,7 @@ deno run --allow-env --allow-net --allow-read --allow-write \
 # Full run: all bundled search queries, repeated three times per model.
 deno run --allow-env --allow-net --allow-read --allow-write \
   --config supabase/functions/deno.json \
-  scripts/eval_query_rewrite_models.ts --include-optional
+  scripts/eval_query_rewrite_models.ts
 ```
 
 The script evaluates `gpt-4.1-nano`, `gpt-4o-mini`, and GPT-5 nano-family candidates with `reasoning.effort=none` when configured. It does not change the production `OPENAI_CHAT_MODEL`; use the report recommendation before making a separate config change.

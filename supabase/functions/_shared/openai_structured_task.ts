@@ -11,6 +11,7 @@ export interface OpenAIStructuredTaskRequest {
   temperature?: number;
   baseUrl?: string;
   reasoningEffort?: string;
+  verbosity?: 'low' | 'medium' | 'high';
 }
 
 export function resolveOpenAIChatModel(
@@ -35,6 +36,7 @@ export async function runStructuredOpenAITask<T>(request: OpenAIStructuredTaskRe
       temperature: request.temperature ?? 0,
       baseUrl: request.baseUrl,
       reasoningEffort: request.reasoningEffort,
+      verbosity: request.verbosity,
     },
   });
 }
