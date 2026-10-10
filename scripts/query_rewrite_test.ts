@@ -22,7 +22,8 @@ Deno.test(
     const saved = names.map((name) => Deno.env.get(name));
     Deno.env.set('OPENAI_API_KEY', 'offline-query-rewrite-test');
     Deno.env.delete('OPENAI_BASE_URL');
-    Deno.env.set('OPENAI_CHAT_MODEL', 'gpt-5.4-nano');
+    // These identifiers are offline fixtures, not provider models or deployment recommendations.
+    Deno.env.set('OPENAI_CHAT_MODEL', 'offline-generation-model');
     Deno.env.set('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small');
     const client = getOpenAIClient() as unknown as {
       responses: { create: (body: any) => Promise<any> } | undefined;
@@ -97,12 +98,15 @@ Deno.test(
             'unexpected global output cap',
           );
         }
-        Deno.env.set('OPENAI_QUERY_REWRITE_MODEL', ' gpt-5.4-nano ');
+        Deno.env.set('OPENAI_QUERY_REWRITE_MODEL', ' offline-query-override-model ');
         await generateQuery('污水处理厂脱氮除磷');
-        assert(body.model === 'gpt-5.4-nano', `${api}: query-only rollback override ignored`);
+        assert(
+          body.model === 'offline-query-override-model',
+          `${api}: query-only override ignored`,
+        );
         Deno.env.set('OPENAI_QUERY_REWRITE_MODEL', 'gpt-6-luna');
         await generateOntologyTuples('nitrogen removal', 'wastewater treatment');
-        assert(body.model === 'gpt-5.4-nano', `${api}: generation model changed`);
+        assert(body.model === 'offline-generation-model', `${api}: generation model changed`);
         assert(
           body.reasoning === undefined && body.reasoning_effort === undefined,
           `${api}: generation received query reasoning`,

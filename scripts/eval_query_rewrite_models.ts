@@ -119,14 +119,6 @@ const CANDIDATES: Candidate[] = [
     inputPricePerMillion: 0.05,
     outputPricePerMillion: 0.4,
   },
-  {
-    id: 'gpt-5.4-nano-none',
-    model: 'gpt-5.4-nano',
-    reasoningEffort: 'none',
-    inputPricePerMillion: 0.2,
-    outputPricePerMillion: 1.25,
-    optional: true,
-  },
 ];
 
 const COURSE_SPEC: RewriteSpec = {
@@ -195,7 +187,7 @@ Options:
   --limit=N                  Limit total source queries before repeats.
   --repeats=N                Repeat each query N times. Default: 3.
   --models=a,b               Candidate ids or model names to run. Must include gpt-4.1-mini.
-  --include-optional         Include optional candidates such as gpt-5.4-nano-none.
+  --include-optional         Include optional candidates (none currently registered).
   --judge-model=MODEL        LLM judge model. Default: gpt-4.1-mini.
   --output-prefix=PATH       Report path prefix. Default: /tmp/tiangong-eval/query-rewrite-model-eval-<timestamp>.
 `);

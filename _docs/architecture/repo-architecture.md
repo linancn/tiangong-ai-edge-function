@@ -42,6 +42,8 @@ The repo uses Node.js tooling for local commands, Deno for Supabase function run
 
 Query rewriting is independently configured with `OPENAI_QUERY_REWRITE_MODEL`, defaulting to `gpt-6-luna`. The multilingual and English generators fix reasoning to `none` and verbosity to `low`, transported as Responses `reasoning.effort`/`text.verbosity` or Chat `reasoning_effort`/`verbosity`. General structured generation retains `OPENAI_CHAT_MODEL`, and embeddings retain `OPENAI_EMBEDDING_MODEL`. Existing default/report/regulatory schemas and sanitize behavior remain intact. Rewrite prompts explicitly retain supplied identifiers and editions in both semantic and lexical fields; unknown abbreviations are not expanded. No shared output-token cap is introduced.
 
+The query override selects a single model. An unset or blank value selects Luna; a request failure propagates through the existing error path without automatic model failover. Alternative models require explicit configuration and independent validation of current support and none/low compatibility.
+
 `course_search` performs Bearer API-key authorization inside the function through the `verify_kb_api_key` RPC. When `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` are configured, successful authorization contexts are cached for up to 15 minutes, capped by token expiry; Redis failures fall back to live RPC verification. Its aggregated `documents` response keeps `content` and `source` and also returns the originating KB `document_id` plus source metadata `tags`, so callers do not need to reverse-engineer record IDs or discard document labels.
 
 ## Integration Points

@@ -100,7 +100,7 @@ Edit .env file refer to .env.example then use REST Client extension of VSCode to
 
 Production query rewriting uses `OPENAI_QUERY_REWRITE_MODEL` (default `gpt-6-luna`) with `reasoning.effort=none` and `text.verbosity=low`. Both the multilingual and English helpers keep their existing schema/profile selection. The Chat compatibility branch sends the equivalent `reasoning_effort` and `verbosity` fields. General generation still uses `OPENAI_CHAT_MODEL`; embeddings still use `OPENAI_EMBEDDING_MODEL`.
 
-For a query-only rollback, set `OPENAI_QUERY_REWRITE_MODEL=gpt-5.4-nano` and restart/redeploy the affected runtime. Both these models accept the fixed none/low settings; do not point this override at a model that lacks them. No query rewrite cache or vector reindex is involved. Removing the override selects Luna again, rather than inheriting the general generation model.
+`OPENAI_QUERY_REWRITE_MODEL` is an explicit model selection override. Removing it or leaving it blank selects Luna. If Luna is unavailable, the rewrite request follows the existing error path without automatically switching to another model. Before explicitly configuring an alternative, validate that it is supported and accepts the fixed none/low settings, then restart/redeploy the affected runtime. No query rewrite cache or vector reindex is involved.
 
 The Luna migration reuses the model-selection evidence from [LCA PR #465](https://github.com/tiangong-lca/edge-functions/pull/465). Local qualification is a bounded integration smoke, not another comparative benchmark:
 
@@ -132,7 +132,7 @@ deno run --allow-env --allow-net --allow-read --allow-write \
 # Full run: all bundled search queries, repeated three times per model.
 deno run --allow-env --allow-net --allow-read --allow-write \
   --config supabase/functions/deno.json \
-  scripts/eval_query_rewrite_models.ts --include-optional
+  scripts/eval_query_rewrite_models.ts
 ```
 
 The script evaluates `gpt-4.1-nano`, `gpt-4o-mini`, and GPT-5 nano-family candidates with `reasoning.effort=none` when configured. It does not change the production `OPENAI_CHAT_MODEL`; use the report recommendation before making a separate config change.
