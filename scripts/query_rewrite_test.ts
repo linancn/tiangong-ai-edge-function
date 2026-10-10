@@ -2,7 +2,12 @@ import generateQuery from '../supabase/functions/_shared/generate_query.ts';
 import generateQueryEn from '../supabase/functions/_shared/generate_query_en.ts';
 import { getOpenAIClient } from '../supabase/functions/_shared/openai_client.ts';
 import { generateEmbedding } from '../supabase/functions/_shared/openai_embedding.ts';
-import { generateOntologyTuples } from '../supabase/functions/_shared/openai_generation.ts';
+import {
+  generateKnowledgeGraph,
+  generateOntologyTuples,
+  generatePerspectiveQuestions,
+} from '../supabase/functions/_shared/openai_generation.ts';
+import { runStructuredOpenAITask } from '../supabase/functions/_shared/openai_structured_task.ts';
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
@@ -10,20 +15,19 @@ function assert(value: unknown, message: string): asserts value {
 
 // Exercise actual callers and SDK capability selection without sending network requests.
 Deno.test(
-  'query profiles send none/low through Responses and Chat; generation is isolated',
+  'rewrite and generation share OPENAI_CHAT_MODEL; query options and embeddings stay isolated',
   async () => {
     const names = [
       'OPENAI_API_KEY',
       'OPENAI_BASE_URL',
       'OPENAI_CHAT_MODEL',
-      'OPENAI_QUERY_REWRITE_MODEL',
       'OPENAI_EMBEDDING_MODEL',
     ];
     const saved = names.map((name) => Deno.env.get(name));
     Deno.env.set('OPENAI_API_KEY', 'offline-query-rewrite-test');
     Deno.env.delete('OPENAI_BASE_URL');
     // These identifiers are offline fixtures, not provider models or deployment recommendations.
-    Deno.env.set('OPENAI_CHAT_MODEL', 'offline-generation-model');
+    Deno.env.set('OPENAI_CHAT_MODEL', ' offline-shared-model ');
     Deno.env.set('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small');
     const client = getOpenAIClient() as unknown as {
       responses: { create: (body: any) => Promise<any> } | undefined;
@@ -56,7 +60,7 @@ Deno.test(
       for (const api of ['responses', 'chat']) {
         client.responses = api === 'responses' ? { create: produce } : undefined;
         client.chat.completions.create = produce;
-        Deno.env.delete('OPENAI_QUERY_REWRITE_MODEL');
+        Deno.env.set('OPENAI_CHAT_MODEL', ' offline-shared-model ');
         const profiles = [
           {
             run: () => generateQuery('污水处理厂脱氮除磷'),
@@ -81,12 +85,13 @@ Deno.test(
         ];
         for (const profile of profiles) {
           await profile.run();
-          assert(body.model === 'gpt-6-luna', `${api}: query model leaked from generic generation`);
+          assert(body.model === 'offline-shared-model', `${api}: shared query model ignored`);
           assert(
             (body.reasoning?.effort ?? body.reasoning_effort) === 'none',
             `${api}: missing none`,
           );
           assert((body.text?.verbosity ?? body.verbosity) === 'low', `${api}: missing low`);
+          assert(body.temperature === 0, `${api}: rewrite temperature changed`);
           const format = body.text?.format ?? body.response_format.json_schema;
           assert(
             format.name === profile.name && format.strict === true,
@@ -98,23 +103,41 @@ Deno.test(
             'unexpected global output cap',
           );
         }
-        Deno.env.set('OPENAI_QUERY_REWRITE_MODEL', ' offline-query-override-model ');
-        await generateQuery('污水处理厂脱氮除磷');
-        assert(
-          body.model === 'offline-query-override-model',
-          `${api}: query-only override ignored`,
-        );
-        Deno.env.set('OPENAI_QUERY_REWRITE_MODEL', 'gpt-6-luna');
-        await generateOntologyTuples('nitrogen removal', 'wastewater treatment');
-        assert(body.model === 'offline-generation-model', `${api}: generation model changed`);
-        assert(
-          body.reasoning === undefined && body.reasoning_effort === undefined,
-          `${api}: generation received query reasoning`,
-        );
-        assert(
-          body.text?.verbosity === undefined && body.verbosity === undefined,
-          `${api}: generation received query verbosity`,
-        );
+        const generators = [
+          () => generateOntologyTuples('nitrogen removal', 'wastewater treatment'),
+          () => generateKnowledgeGraph('wastewater treatment', 'nitrogen removal'),
+          () => generatePerspectiveQuestions('wastewater treatment'),
+        ];
+        for (const setting of ['gpt-6-luna', ' offline-shared-model ', '', undefined]) {
+          if (setting === undefined) Deno.env.delete('OPENAI_CHAT_MODEL');
+          else Deno.env.set('OPENAI_CHAT_MODEL', setting);
+          const expected = setting?.trim() || 'gpt-4o-mini';
+          for (const profile of profiles) {
+            await profile.run();
+            assert(body.model === expected, `${api}: ${profile.name} ignored shared selection`);
+          }
+          for (const generate of generators) {
+            await generate();
+            assert(body.model === expected, `${api}: generation ignored shared selection`);
+            assert(!('temperature' in body), `${api}: generation received implicit temperature`);
+            assert(
+              body.reasoning === undefined && body.reasoning_effort === undefined,
+              `${api}: generation received query reasoning`,
+            );
+            assert(
+              body.text?.verbosity === undefined && body.verbosity === undefined,
+              `${api}: generation received query verbosity`,
+            );
+          }
+        }
+        await runStructuredOpenAITask({
+          schemaName: 'explicit_temperature',
+          schema: { type: 'object', properties: { answer: { type: 'string' } } },
+          systemPrompt: 'Offline test',
+          userPrompt: 'Offline test',
+          temperature: 0.4,
+        });
+        assert(body.temperature === 0.4, `${api}: explicit temperature ignored`);
       }
       client.embeddings.create = async (request) => {
         body = request;

@@ -14,7 +14,7 @@ checkPaths:
   - Dockerfile
   - supabase/**
 lastReviewedAt: 2026-10-10
-lastReviewedCommit: 8de58fbcb4dc10abece3131a5ea3ed4b63970056
+lastReviewedCommit: a8678bcbc48ee779494565eca08583a0a92c42a7
 ---
 
 # Edge Function Development Runbook
@@ -55,7 +55,7 @@ Use `test.example.http` or a REST client for endpoint checks when function behav
 
 ## Query Rewrite Model Evaluation
 
-Production query rewriting uses `OPENAI_QUERY_REWRITE_MODEL=gpt-6-luna` by default with fixed `none` reasoning and `low` verbosity. Keep `OPENAI_CHAT_MODEL` and `OPENAI_EMBEDDING_MODEL` independently configured. The query override selects one model; deleting it or leaving it blank selects Luna. A failed Luna request follows the existing error path without automatic model failover. Before explicitly configuring an alternative, independently validate that it is supported and accepts both settings, then restart/redeploy the affected runtime. This code change does not itself deploy functions or update remote secrets.
+Set `OPENAI_CHAT_MODEL=gpt-6-luna` for both query rewriting and general text generation. There is no separate rewrite-model setting. Rewriting retains fixed `none` reasoning, `low` verbosity and `temperature=0`; general generation leaves reasoning and sampling to model defaults. The shared layer must not inject a temperature when none was supplied, because Luna rejects it with default reasoning. `OPENAI_EMBEDDING_MODEL` remains independent. An unset or blank chat-model value retains the existing shared default, `gpt-4o-mini`; a failed request does not automatically switch models. Validate all text-generation callers and the rewrite helpers' none/low compatibility before choosing another model. This code change does not itself deploy functions or update remote secrets.
 
 Run the offline request contracts and the six-fixture live opt-in smoke using the commands in README. The smoke checks raw schema fields before sanitization, supplied identifiers and exclusions in both query fields, alias bounds, and the provider's actual model/configuration receipt. It makes at most six requests without retries; inspect the default dry output before spending on live calls. Raw reports belong outside Git. Use a valid existing credential with a local function server and small `topK`/`extK` values for real retrieval checks; do not bypass authorization or replace retrieval backends with mocks when claiming retrieval qualification.
 
@@ -63,7 +63,7 @@ Run the offline request contracts and the six-fixture live opt-in smoke using th
 
 Model-selection evidence comes from [LCA PR #465](https://github.com/tiangong-lca/edge-functions/pull/465). Local verification was limited to integration compatibility:
 
-- Offline production-caller request checks passed for all four profiles on Responses and Chat, including a query-only override, generic generation isolation, and unchanged embedding selection. The override/isolation fixtures now use offline-only model identifiers and send no provider requests. Chat parameter transport was verified with mocks; live qualification used Responses, selected by the current SDK. Type checks and scoped Prettier checks passed.
+- The initial offline production-caller request checks covered all four profiles on Responses and Chat, rewrite-specific request options, and unchanged embedding selection. The current contract test additionally verifies that all four rewrite profiles and all three generation helpers follow the same `OPENAI_CHAT_MODEL`, including trimmed, blank and unset values. It uses offline fixtures and sends no provider requests. Chat parameter transport is verified with mocks; live qualification used Responses, selected by the current SDK.
 - The initial six live Luna calls found one CAS omission in `semantic_query`. The shared prompt was strengthened to preserve every supplied identifier/edition in both fields without invented expansions. A new six-call run passed every raw/sanitized schema and semantic probe; all responses reported Luna, none/low and zero reasoning tokens. Other existing prompts and schemas were retained.
 - Two authenticated local `edu_search` requests with the same Chinese nitrogen/phosphorus-removal query and `topK=3, extK=0` used real configured OpenAI, Pinecone and OpenSearch backends. The pre-migration baseline and Luna both returned HTTP 200 and the same ordered two relevant documents. Provider receipts confirmed the requested rewrite models and unchanged `text-embedding-3-small` embeddings. This is historical retrieval smoke evidence, not a current fallback recommendation or a statistical latency, cost or full-corpus quality result.
 - Live backend responses and receipts were retained outside Git. Only sanitized outcomes are recorded here and in the delivery Issue/PR. Remote deployment remains a separate operation.

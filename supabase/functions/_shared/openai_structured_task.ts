@@ -33,7 +33,7 @@ export async function runStructuredOpenAITask<T>(request: OpenAIStructuredTaskRe
     userPrompt: request.userPrompt,
     options: {
       model,
-      temperature: request.temperature ?? 0,
+      temperature: request.temperature,
       baseUrl: request.baseUrl,
       reasoningEffort: request.reasoningEffort,
       verbosity: request.verbosity,
